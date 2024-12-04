@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Page</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Employment Details</h1>
+    </header>
+    <main>
+        <section id="details">
+            <h2>Job Title: {{ job_title }}</h2>
+            <p><strong>Company:</strong> {{ company }}</p>
+            <p><strong>Description:</strong></p>
+            <p>{{ description }}</p>
+            <p><strong>Requirements:</strong></p>
+            <ul>
+                {% for requirement in requirements %}
+                    <li>{{ requirement }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        <button id="applyBtn">Apply Now</button>
+    </main>
+    <script src="/static/js/detail.js"></script>
+</body>
+</html>
