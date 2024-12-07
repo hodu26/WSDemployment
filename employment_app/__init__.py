@@ -1,14 +1,11 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from . import db # models에 선언된 db 객체 사용
 from flask_migrate import Migrate
 from config import Config
 from employment_app.views.route import main_blueprint
 from employment_app.apis.api import api_blueprint
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text  # text를 import
-
-# DB 객체 생성
-db = SQLAlchemy()
 
 def create_app():
     """Flask 애플리케이션을 생성하고 설정합니다."""
@@ -22,6 +19,9 @@ def create_app():
 
     # Flask 설정을 로드합니다.
     app.config.from_object(Config)
+
+    # 모델 임포트
+    from .models.model import User, Company, JobPosting, Skill, JobPostingSkill, Token, Bookmark, Application
 
     # 데이터베이스 초기화
     db.init_app(app)

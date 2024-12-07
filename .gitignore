@@ -1,6 +1,7 @@
 # 파이썬 깃허브 기본 설정
 __pycache__/
 .venv/
+migrations/
 .gitmessage.txt
 
 .env
