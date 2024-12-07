@@ -4,3 +4,8 @@ psycopg2-binary
 flask-migrate
 marshmallow
 python-dotenv
+
+# 크롤링
+requests
+beautifulsoup4
+pandas

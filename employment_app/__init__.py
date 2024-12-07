@@ -2,7 +2,7 @@ from flask import Flask
 from .models import db # models에 선언된 db 객체 사용
 from flask_migrate import Migrate
 from config import Config
-from employment_app.views.route import main_blueprint
+from employment_app.views.routes import main_blueprint
 from employment_app.apis.api import api_blueprint
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text  # text를 import

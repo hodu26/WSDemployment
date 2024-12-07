@@ -13,32 +13,35 @@ class User(db.Model):
 class Company(db.Model):
     __tablename__ = 'companies'
     company_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), unique=True, nullable=False)
-    industry = db.Column(db.String(64))
-    description = db.Column(db.Text)
-    logo_url = db.Column(db.String(128))
-    website = db.Column(db.String(128))
+    name = db.Column(db.String(255), nullable=False)
+    company_type = db.Column(db.String(255), nullable=True)
+    industry = db.Column(db.String(255), nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    address = db.Column(db.String(255), nullable=True)
+    introduce = db.Column(db.Text, nullable=True)
 
 
 class JobPosting(db.Model):
     __tablename__ = 'job_postings'
     job_post_id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), nullable=False)
-    title = db.Column(db.String(128), nullable=False)
-    description = db.Column(db.Text)
-    requirements = db.Column(db.Text)
+    trend_keywords = db.Column(db.String(256)) 
+    title = db.Column(db.String(128), nullable=False) 
+    link = db.Column(db.String(256))
     location = db.Column(db.String(32))
-    career_level = db.Column(db.String(64))
-    salary_range = db.Column(db.String(64))
-    posted_date = db.Column(db.Date)
-    deadline = db.Column(db.Date)
+    career_level = db.Column(db.String(64)) 
+    education = db.Column(db.String(64))
+    employment_type = db.Column(db.String(64))
+    deadline = db.Column(db.Date) 
+    salary_range = db.Column(db.String(64)) 
+    posted_date = db.Column(db.Date) 
     status = db.Column(db.Enum('open', 'closed', name='job_status'))
 
 
 class Skill(db.Model):
     __tablename__ = 'skills'
     skill_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), nullable=False)
+    name = db.Column(db.String(64), unique=True, nullable=False)
 
 
 class JobPostingSkill(db.Model):
