@@ -1,5 +1,5 @@
 from flask import Flask
-from . import db # models에 선언된 db 객체 사용
+from .models import db # models에 선언된 db 객체 사용
 from flask_migrate import Migrate
 from config import Config
 from employment_app.views.route import main_blueprint
