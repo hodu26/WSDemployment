@@ -1,14 +1,40 @@
-2024-12-10 19:19:35,036 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/signin at 2024-12-10 19:19:35.036269
-2024-12-10 19:19:35,265 - INFO - Request took 0.23 seconds.
-2024-12-10 19:19:35,265 - INFO - Response: 200 at 2024-12-10 19:19:35.265714
-2024-12-10 19:42:01,968 - INFO - Request started: POST http://127.0.0.1:5000/api/crawl/job_posts at 2024-12-10 19:42:01.968095
-2024-12-10 19:42:06,866 - INFO - Request took 4.90 seconds.
-2024-12-10 19:42:06,866 - INFO - Response: 200 at 2024-12-10 19:42:06.866443
-2024-12-10 19:50:57,232 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/signin at 2024-12-10 19:50:57.232352
-2024-12-10 19:50:57,481 - ERROR - Error occurred: 'User' object has no attribute 'username' at 2024-12-10 19:50:57.481507
-2024-12-10 19:50:57,482 - INFO - Request took 0.25 seconds.
-2024-12-10 19:50:57,483 - INFO - Response: 500 at 2024-12-10 19:50:57.483686
-2024-12-10 19:52:20,974 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/signin at 2024-12-10 19:52:20.974994
-2024-12-10 19:52:21,211 - INFO - User test signed in successfully at 2024-12-10 19:52:21.211274
-2024-12-10 19:52:21,212 - INFO - Request took 0.24 seconds.
-2024-12-10 19:52:21,213 - INFO - Response: 200 at 2024-12-10 19:52:21.213294
+2024-12-10 20:39:56,333 - INFO - Request took 0.03 seconds.
+2024-12-10 20:39:56,334 - INFO - Response: 500 at 2024-12-10 20:39:56.334217
+2024-12-10 20:40:34,966 - INFO - Request started: PUT http://127.0.0.1:5000/api/auth/profile at 2024-12-10 20:40:34.966412
+2024-12-10 20:40:35,189 - INFO - User test@test.com profile updated successfully at 2024-12-10 20:40:35.189529
+2024-12-10 20:40:35,190 - INFO - Request took 0.22 seconds.
+2024-12-10 20:40:35,191 - INFO - Response: 200 at 2024-12-10 20:40:35.191377
+2024-12-10 20:41:09,165 - INFO - Request started: GET http://127.0.0.1:5000/api/auth/user at 2024-12-10 20:41:09.165708
+2024-12-10 20:41:09,174 - INFO - User test2 information retrieved successfully at 2024-12-10 20:41:09.174742
+2024-12-10 20:41:09,175 - INFO - Request took 0.01 seconds.
+2024-12-10 20:41:09,177 - INFO - Response: 200 at 2024-12-10 20:41:09.177410
+2024-12-10 20:41:18,016 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/login at 2024-12-10 20:41:18.016361
+2024-12-10 20:41:18,226 - ERROR - Failed login attempt for email: test@test.com at 2024-12-10 20:41:18.226711
+2024-12-10 20:41:18,227 - INFO - Request took 0.21 seconds.
+2024-12-10 20:41:18,228 - INFO - Response: 401 at 2024-12-10 20:41:18.228729
+2024-12-10 20:41:21,322 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/login at 2024-12-10 20:41:21.322017
+2024-12-10 20:41:21,561 - INFO - User test2 signed in successfully at 2024-12-10 20:41:21.561326
+2024-12-10 20:41:21,562 - INFO - Request took 0.24 seconds.
+2024-12-10 20:41:21,563 - INFO - Response: 200 at 2024-12-10 20:41:21.563323
+2024-12-10 20:43:26,974 - INFO - Request started: DELETE http://127.0.0.1:5000/api/auth/user at 2024-12-10 20:43:26.974043
+2024-12-10 20:43:26,975 - ERROR - Error occurred: Signature verification failed at 2024-12-10 20:43:26.975294
+2024-12-10 20:43:26,975 - INFO - Request took 0.00 seconds.
+2024-12-10 20:43:26,976 - INFO - Response: 500 at 2024-12-10 20:43:26.976378
+2024-12-10 20:43:47,959 - INFO - Request started: DELETE http://127.0.0.1:5000/api/auth/user at 2024-12-10 20:43:47.959693
+2024-12-10 20:43:48,003 - ERROR - Error occurred: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)
+(psycopg2.errors.ForeignKeyViolation) update or delete on table "users" violates foreign key constraint "tokens_user_id_fkey" on table "tokens"
+DETAIL:  Key (user_id)=(2) is still referenced from table "tokens".
+
+[SQL: DELETE FROM users WHERE users.user_id = %(user_id)s]
+[parameters: {'user_id': 2}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj) at 2024-12-10 20:43:48.003273
+2024-12-10 20:43:48,005 - INFO - Request took 0.05 seconds.
+2024-12-10 20:43:48,005 - INFO - Response: 500 at 2024-12-10 20:43:48.005326
+2024-12-10 20:48:00,682 - INFO - Request started: DELETE http://127.0.0.1:5000/api/auth/user at 2024-12-10 20:48:00.682347
+2024-12-10 20:48:00,738 - INFO - User test@test.com deleted successfully at 2024-12-10 20:48:00.737049
+2024-12-10 20:48:00,738 - INFO - Request took 0.05 seconds.
+2024-12-10 20:48:00,739 - INFO - Response: 200 at 2024-12-10 20:48:00.739437
+2024-12-10 20:48:23,412 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/register at 2024-12-10 20:48:23.411736
+2024-12-10 20:48:23,638 - INFO - User registered successfully: test (test@test.com) at 2024-12-10 20:48:23.638920
+2024-12-10 20:48:23,638 - INFO - Request took 0.23 seconds.
+2024-12-10 20:48:23,640 - INFO - Response: 201 at 2024-12-10 20:48:23.640336

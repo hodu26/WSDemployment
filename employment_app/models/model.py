@@ -11,6 +11,7 @@ class User(db.Model):
     name = db.Column(db.String(16), nullable=False)
     created_at = db.Column(DateTime, default=lambda: datetime.now(KST), nullable=False)  # 삽입 시 기본값
     updated_at = db.Column(DateTime, default=lambda: datetime.now(KST), onupdate=lambda: datetime.now(KST), nullable=False)  # 수정 시 갱신
+    tokens = db.relationship('Token', backref='user', cascade='all, delete')
 
 
 class Company(db.Model):
