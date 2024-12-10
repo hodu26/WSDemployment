@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
+    ENV = os.getenv("ENV", "prod")
     # PostgreSQL 연결 정보
     SQLALCHEMY_DATABASE_URI = (
         f"postgresql+psycopg2://{os.getenv('DB_USER', 'username')}:"
@@ -15,3 +16,4 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
+    JWT_SECRET_KEY = os.getenv("SECRET_KEY", "default-jwt-secret-key")  # JWT 비밀 키

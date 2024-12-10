@@ -26,8 +26,12 @@ def crawl_company_info(company_name, link):
         for company in company_infos:
             try:
                 # 기업 형태
-                company_type = company.select('.company_summary_tit')[1].text.strip()
-                if company_type.endswith("명"):
+                company_summary_tit = company.select('.company_summary_tit')
+                if len(company_summary_tit) > 1:  # [1]이 있는지 확인
+                    company_type = company_summary_tit[1].text.strip()
+                    if company_type.endswith("명"):
+                        company_type = None
+                else:
                     company_type = None
 
                 # 업종

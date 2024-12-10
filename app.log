@@ -1,0 +1,14 @@
+2024-12-10 19:19:35,036 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/signin at 2024-12-10 19:19:35.036269
+2024-12-10 19:19:35,265 - INFO - Request took 0.23 seconds.
+2024-12-10 19:19:35,265 - INFO - Response: 200 at 2024-12-10 19:19:35.265714
+2024-12-10 19:42:01,968 - INFO - Request started: POST http://127.0.0.1:5000/api/crawl/job_posts at 2024-12-10 19:42:01.968095
+2024-12-10 19:42:06,866 - INFO - Request took 4.90 seconds.
+2024-12-10 19:42:06,866 - INFO - Response: 200 at 2024-12-10 19:42:06.866443
+2024-12-10 19:50:57,232 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/signin at 2024-12-10 19:50:57.232352
+2024-12-10 19:50:57,481 - ERROR - Error occurred: 'User' object has no attribute 'username' at 2024-12-10 19:50:57.481507
+2024-12-10 19:50:57,482 - INFO - Request took 0.25 seconds.
+2024-12-10 19:50:57,483 - INFO - Response: 500 at 2024-12-10 19:50:57.483686
+2024-12-10 19:52:20,974 - INFO - Request started: POST http://127.0.0.1:5000/api/auth/signin at 2024-12-10 19:52:20.974994
+2024-12-10 19:52:21,211 - INFO - User test signed in successfully at 2024-12-10 19:52:21.211274
+2024-12-10 19:52:21,212 - INFO - Request took 0.24 seconds.
+2024-12-10 19:52:21,213 - INFO - Response: 200 at 2024-12-10 19:52:21.213294

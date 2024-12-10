@@ -1,9 +1,11 @@
 from flask import Flask
-from .models import db # models에 선언된 db 객체 사용
 from flask_migrate import Migrate
 from config import Config
-from employment_app.views.routes import main_blueprint
-from employment_app.apis.api import api_blueprint
+from .views.main_routes import main_blueprint
+from .controllers import api_blueprint
+from .models import db # models에 선언된 db 객체 사용
+from .extensions import bcrypt, jwt # 확장 프로그램 사용
+from .error_log import configure_error_handlers, configure_logger, monitor_performance
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text  # text를 import
 
@@ -27,6 +29,10 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
 
+    # extensions(확장) 초기화 
+    bcrypt.init_app(app)
+    jwt.init_app(app)
+
     # 블루프린트 등록
     app.register_blueprint(main_blueprint)  # 기본 라우트 등록
     app.register_blueprint(api_blueprint, url_prefix='/api')  # API 관련 라우트 등록
@@ -38,5 +44,14 @@ def create_app():
             print("Database connected successfully!")
         except OperationalError as e:
             print("Database connection failed:", e)
+
+    # 로깅 설정
+    configure_logger(app)
+
+    # 성능 모니터링
+    monitor_performance(app)
+
+    # 에러 핸들러 설정
+    configure_error_handlers(app)
 
     return app
