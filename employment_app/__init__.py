@@ -55,6 +55,9 @@ def create_app():
     # 성능 모니터링
     monitor_performance(app)
 
+    # PROPAGATE_EXCEPTIONS 설정
+    app.config['PROPAGATE_EXCEPTIONS'] = True
+
     # 에러 핸들러 설정
     configure_error_handlers(app)
 
