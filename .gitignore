@@ -5,3 +5,6 @@ migrations
 .gitmessage.txt
 
 .env
+
+*.log
+*.log.*

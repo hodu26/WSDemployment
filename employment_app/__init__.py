@@ -1,8 +1,9 @@
 from flask import Flask
 from flask_migrate import Migrate
 from config import Config
+from flask_restx import Api
 from .views.main_routes import main_blueprint
-from .controllers import api_blueprint
+from .controllers import api_blueprint, main_api
 from .models import db # models에 선언된 db 객체 사용
 from .extensions import bcrypt, jwt # 확장 프로그램 사용
 from .error_log import configure_error_handlers, configure_logger, monitor_performance
@@ -32,6 +33,9 @@ def create_app():
     # extensions(확장) 초기화 
     bcrypt.init_app(app)
     jwt.init_app(app)
+
+    # Swagger API 설정
+    api = main_api
 
     # 블루프린트 등록
     app.register_blueprint(main_blueprint)  # 기본 라우트 등록
