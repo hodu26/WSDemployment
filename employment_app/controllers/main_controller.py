@@ -1,28 +1,14 @@
 from flask import jsonify, request, current_app
 from flask_restx import  Namespace, Resource, fields
 from . import api_blueprint, main_api
-from ..models import db, Company, JobPosting, Skill, JobPostingSkill, success_response_model, error_response_model
+from ..models import db, Company, JobPosting, Skill, JobPostingSkill
+from ..schemas import job_post_model, company_model, skill_model, success_response_model, error_response_model
 from ..services import crawl_job_posts, crawl_company_info
 from ..error_log import success_response, CustomError, ValidationError
 from datetime import datetime
 
 # Namespace 생성
 crawl_ns = Namespace("crawl", description="크롤링 관련 api")
-
-# 사용되는 모델 선언
-job_post_model = main_api.model('Job_post', {
-    'keyword': fields.String(required=True, description='크롤링 검색 키워드', example='IT개발·데이터'),
-    'pages': fields.Integer(required=True, description='크롤링 할 페이지 수', example=1)
-})
-
-company_model = main_api.model('Company', {
-    'company_name': fields.String(required=True, description='크롤링 할 회사명', example='케이티텔레캅(주)'),
-    'link': fields.String(required=True, description='크롤링 할 페이지 링크', example='https://www.saramin.co.kr/zf_user/company-info/view?csn=YnkrZk9OTDVDM29ra0lXZDNVMDNQZz09')
-})
-
-skill_model = main_api.model('Skill', {
-    'skill': fields.String(required=True, description='추가 할 기술명', example='Java'),
-})
 
 @crawl_ns.route("/update/skills")
 class update_skills_table(Resource):
@@ -237,9 +223,3 @@ class get_job_posts(Resource):
 
 # Namespace 등록
 main_api.add_namespace(crawl_ns)
-
-# # 에러 핸들링
-# @api_blueprint.errorhandler(Exception)
-# def handle_error(e):
-#     current_app.logger.error(f"Error occurred: {str(e)} at {datetime.now()}")
-#     raise CustomError("서버 에러 발생", 500, "INTERNAL_SERVER_ERROR")

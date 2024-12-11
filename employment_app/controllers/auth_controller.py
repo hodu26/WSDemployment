@@ -1,33 +1,16 @@
 from flask import request, jsonify, current_app
 from flask_restx import Namespace, Resource, fields
 from . import main_api
-from ..models import db, User, Token, success_response_model, error_response_model
+from ..models import db, User, Token
+from ..schemas import register_model, login_model, profile_model, success_response_model, error_response_model
 from ..extensions import bcrypt, KST
-from ..error_log import success_response, CustomError, AuthenticationError, ValidationError
+from ..error_log import success_response, AuthenticationError, ValidationError
 from datetime import datetime, timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import re
 
 # Namespace 생성
 auth_ns = Namespace("auth", description="인증 관련 api")
-
-# 사용되는 모델 선언
-register_model = main_api.model('Register', {
-    'name': fields.String(required=True, description='사용자 이름', example='홍길동'),
-    'email': fields.String(required=True, description='이메일(아이디)', example='hong@example.com'),
-    'password': fields.String(required=True, description='비밀번호 (대.소문자 1개 이상, 숫자 포함, 특수기호 포함, 8자리 이상)', example='Password123!')
-})
-
-login_model = main_api.model('Login', {
-    'email': fields.String(required=True, description='이메일(아이디)', example='hong@example.com'),
-    'password': fields.String(required=True, description='비밀번호', example='Password123!')
-})
-
-profile_model = main_api.model('Profile', {
-    'name': fields.String(required=True, description='변경할 사용자 이름', example='김철수'),
-    'password': fields.String(required=True, description='변경할 비밀번호 (대.소문자 1개 이상, 특수기호 포함, 8자리 이상)', example='NewPassword!123')
-})
-
 
 # 이메일 검증
 def is_valid_email(email):
@@ -244,9 +227,3 @@ class UpdateProfile(Resource):
     
 # Namespace 등록
 main_api.add_namespace(auth_ns)
-
-# # 에러 핸들링
-# @auth_ns.errorhandler(Exception)
-# def handle_error(e):
-#     current_app.logger.error(f"Error occurred: {str(e)} at {datetime.now()}")
-#     raise CustomError("서버 에러 발생", 500, "INTERNAL_SERVER_ERROR")
