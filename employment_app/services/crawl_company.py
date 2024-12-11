@@ -17,6 +17,20 @@ def crawl_company_info(company_name, link):
 
     try:
         response = requests.get(url, headers=headers)
+        
+        # 404 에러 처리
+        if response.status_code == 404:
+            print(f"{company_name} 페이지가 존재하지 않습니다. 모든 정보는 None으로 저장됩니다.")
+            company_info.append({
+                '회사명': company_name,
+                '기업 형태': None,
+                '업종': None,
+                '홈페이지': None,
+                '주소': None,
+                '기업 설명': None,
+            })
+            return company_info
+        
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
 
