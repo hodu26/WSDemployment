@@ -1,8 +1,9 @@
 from flask import jsonify, request, current_app
 from flask_restx import  Namespace, Resource, fields
 from . import api_blueprint, main_api
-from ..models import db, Company, JobPosting, Skill, JobPostingSkill
+from ..models import db, Company, JobPosting, Skill, JobPostingSkill, success_response_model, error_response_model
 from ..services import crawl_job_posts, crawl_company_info
+from ..error_log import success_response, CustomError, ValidationError
 from datetime import datetime
 
 # Namespace 생성
@@ -10,32 +11,35 @@ crawl_ns = Namespace("crawl", description="크롤링 관련 api")
 
 # 사용되는 모델 선언
 job_post_model = main_api.model('Job_post', {
-    'keyword': fields.String(required=True, description='크롤링 검색 키워드'),
-    'pages': fields.String(required=True, description='크롤링 할 페이지 수')
+    'keyword': fields.String(required=True, description='크롤링 검색 키워드', example='IT개발·데이터'),
+    'pages': fields.Integer(required=True, description='크롤링 할 페이지 수', example=1)
 })
 
 company_model = main_api.model('Company', {
-    'company_name': fields.String(required=True, description='크롤링 할 회사명'),
-    'link': fields.String(required=True, description='크롤링 할 페이지 링크')
+    'company_name': fields.String(required=True, description='크롤링 할 회사명', example='케이티텔레캅(주)'),
+    'link': fields.String(required=True, description='크롤링 할 페이지 링크', example='https://www.saramin.co.kr/zf_user/company-info/view?csn=YnkrZk9OTDVDM29ra0lXZDNVMDNQZz09')
 })
 
 skill_model = main_api.model('Skill', {
-    'skill': fields.String(required=True, description='수정 할 기술명'),
+    'skill': fields.String(required=True, description='추가 할 기술명', example='Java'),
 })
 
 @crawl_ns.route("/update/skills")
 class update_skills_table(Resource):
     @main_api.expect(skill_model)
+    @main_api.response(200, '스킬 정보 업데이트 성공', model=success_response_model)
+    @main_api.response(400, '스킬 이름을 제공해주세요.', model=error_response_model)
+    @main_api.response(500, '기술 업데이트 실패', model=error_response_model)
     def post(self):
         """
-        기술명을 변경하는 엔드포인트
+        기술명을 추가하는 엔드포인트
         """
         data = request.json
         skill_name = data.get('skill')
 
         if not skill_name:
             current_app.logger.warning(f"Skill name not provided at {datetime.now()}")
-            return jsonify({"message": "스킬 이름을 제공해주세요."}), 400
+            raise ValidationError("스킬 이름을 제공해주세요.")
 
         try:
             skill = Skill.query.filter_by(name=skill_name).first()
@@ -47,16 +51,18 @@ class update_skills_table(Resource):
                 skill.name = skill_name
             db.session.commit()
 
-            return jsonify({"message": "스킬 정보 업데이트 완료"}), 200
+            return success_response({"message": "스킬 정보 업데이트 성공", "skill_name": skill.name}), 200
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error updating skills at {datetime.now()}: {str(e)}")
-            return jsonify({"message": "Failed to update skills"}), 500
+            raise CustomError("기술 업데이트 실패", 500, "UPDATE_SKILL_ERROR")
 
 @crawl_ns.route("/company_info")
 class crawl_and_store_company_info(Resource):
     @main_api.expect(company_model)
+    @main_api.response(200, '회사 정보 크롤링 및 저장 완료', model=success_response_model)
+    @main_api.response(400, '회사명과 링크는 필수입니다.', model=error_response_model)
     def post(self):
         """
         사람인 회사 정보를 크롤링하여 데이터베이스에 저장하는 엔드포인트
@@ -67,12 +73,13 @@ class crawl_and_store_company_info(Resource):
 
         if not company_name or not link:
             current_app.logger.warning(f"Company name or link missing in request at {datetime.now()}")
-            return jsonify({"message": "회사명과 링크는 필수입니다."}), 400
+            raise ValidationError("회사명과 링크는 필수입니다.")
 
         try:
             company_data = crawl_company_info(company_name, link)
 
             # 데이터베이스에 저장
+            saved_companies = []
             for company in company_data:
                 existing_company = Company.query.filter_by(name=company['회사명']).first()
 
@@ -86,18 +93,25 @@ class crawl_and_store_company_info(Resource):
                         introduce=company.get('기업 설명', '정보 없음')
                     )
                     db.session.add(new_company)
+                    saved_companies.append(new_company)
                     db.session.commit()
 
-            return jsonify({"message": "회사의 정보 크롤링 및 저장 완료"}), 200
+            return success_response({
+                "message": "회사 정보 크롤링 및 저장 완료",
+                "companies": [{"company_name": company.name, "company_type": company.company_type} for company in saved_companies]
+            }), 200
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error storing company info at {datetime.now()}: {str(e)}")
-            return jsonify({"message": "Failed to store company info"}), 500
+            raise CustomError("회사 정보 저장 실패", 500, "STORE_COMPANY_INFO_ERROR")
 
 @crawl_ns.route("/job_posts")
 class get_job_posts(Resource):
     @main_api.expect(job_post_model)
+    @main_api.response(200, '크롤링 및 데이터 저장 완료', model=success_response_model)
+    @main_api.response(400, '잘못된 요청 데이터', model=error_response_model)
+    @main_api.response(500, '채용 공고 크롤링 실패', model=error_response_model)
     def post(self):
         """
         사람인 키워드별 채용 정보를 크롤링하여 데이터베이스에 저장하는 엔드포인트
@@ -146,6 +160,7 @@ class get_job_posts(Resource):
             job_data = crawl_job_posts(keyword, pages)
 
             # 데이터베이스에 저장
+            saved_jobs = []
             for job in job_data:
                 # 1. Company 테이블에 회사 이름 확인
                 company = Company.query.filter_by(name=job['회사명']).first()
@@ -201,19 +216,30 @@ class get_job_posts(Resource):
                 update_skills_table([job['직무분야']])
                 save_job_posting_skills(posting.job_post_id, [job['직무분야']])
 
+                posting.company_name = company.name
+                saved_jobs.append(posting)
+
             db.session.commit()
-            return jsonify({"message": "크롤링 및 데이터 저장 완료", "count": len(job_data)}), 200
+            return success_response({
+                "message": "크롤링 및 데이터 저장 완료",
+                "jobs": [{
+                    "job_title": job.title,
+                    "company_name": job.company_name,
+                    "location": job.location
+                } for job in saved_jobs],
+                "count": len(saved_jobs)
+            }), 200
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error processing job posts at {datetime.now()}: {str(e)}")
-            return jsonify({"message": "Failed to process job posts"}), 500
+            raise CustomError("채용 공고 크롤링 실패", 500, "STORE_JOB_POSTS_ERROR")
 
 # Namespace 등록
 main_api.add_namespace(crawl_ns)
 
-# 에러 핸들링
-@api_blueprint.errorhandler(Exception)
-def handle_error(e):
-    current_app.logger.error(f"Error occurred: {str(e)} at {datetime.now()}")
-    return jsonify({"message": "An error occurred"}), 500
+# # 에러 핸들링
+# @api_blueprint.errorhandler(Exception)
+# def handle_error(e):
+#     current_app.logger.error(f"Error occurred: {str(e)} at {datetime.now()}")
+#     raise CustomError("서버 에러 발생", 500, "INTERNAL_SERVER_ERROR")

@@ -1,8 +1,9 @@
 from flask import request, jsonify, current_app
 from flask_restx import Namespace, Resource, fields
 from . import main_api
-from ..models import db, User, Token
+from ..models import db, User, Token, success_response_model, error_response_model
 from ..extensions import bcrypt, KST
+from ..error_log import success_response, CustomError, AuthenticationError, ValidationError
 from datetime import datetime, timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import re
@@ -12,19 +13,19 @@ auth_ns = Namespace("auth", description="인증 관련 api")
 
 # 사용되는 모델 선언
 register_model = main_api.model('Register', {
-    'name': fields.String(required=True, description='사용자 이름'),
-    'email': fields.String(required=True, description='이메일(아이디)'),
-    'password': fields.String(required=True, description='비밀번호 (대.소문자 1개 이상, 특수기호 포함, 8자리 이상)')
+    'name': fields.String(required=True, description='사용자 이름', example='홍길동'),
+    'email': fields.String(required=True, description='이메일(아이디)', example='hong@example.com'),
+    'password': fields.String(required=True, description='비밀번호 (대.소문자 1개 이상, 숫자 포함, 특수기호 포함, 8자리 이상)', example='Password123!')
 })
 
 login_model = main_api.model('Login', {
-    'email': fields.String(required=True, description='이메일(아이디)'),
-    'password': fields.String(required=True, description='비밀번호')
+    'email': fields.String(required=True, description='이메일(아이디)', example='hong@example.com'),
+    'password': fields.String(required=True, description='비밀번호', example='Password123!')
 })
 
 profile_model = main_api.model('Profile', {
-    'name': fields.String(required=True, description='변경할 사용자 이름'),
-    'password': fields.String(required=True, description='변경할 비밀번호 (대.소문자 1개 이상, 특수기호 포함, 8자리 이상)')
+    'name': fields.String(required=True, description='변경할 사용자 이름', example='김철수'),
+    'password': fields.String(required=True, description='변경할 비밀번호 (대.소문자 1개 이상, 특수기호 포함, 8자리 이상)', example='NewPassword!123')
 })
 
 
@@ -44,6 +45,10 @@ def is_strong_password(password):
 @auth_ns.route("/register")
 class Register(Resource):
     @main_api.expect(register_model)
+    @main_api.response(201, '회원가입 성공', model=success_response_model)
+    @main_api.response(400, '올바른 이메일 형식이 아닙니다.', model=error_response_model)
+    @main_api.response(400, '비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.', model=error_response_model)
+    @main_api.response(400, '이미 존재하는 이메일입니다.', model=error_response_model)
     def post(self):
         """
         회원가입 엔드포인트
@@ -56,17 +61,17 @@ class Register(Resource):
         # 이메일 형식 검증
         if not is_valid_email(email):
             current_app.logger.error(f"Invalid email format: {email} at {datetime.now()}")
-            return jsonify({"message": "Invalid email format"}), 400
+            raise ValidationError("올바른 이메일 형식이 아닙니다.")
 
          # 비밀번호 검증
         if not is_strong_password(password):
             current_app.logger.error(f"Weak password for email: {email} at {datetime.now()}")
-            return jsonify({"message": "Password must include at least one uppercase letter, one lowercase letter, one digit, and one special character"}), 400
+            raise ValidationError("비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.")
 
         # 이메일 중복 확인
         if User.query.filter_by(email=email).first():
             current_app.logger.error(f"Email already exists: {email} at {datetime.now()}")
-            return jsonify({"message": "Email already exists"}), 400
+            raise ValidationError("이미 존재하는 이메일입니다.")
 
         # 비밀번호 해싱 후 사용자 저장
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
@@ -75,12 +80,18 @@ class Register(Resource):
         db.session.commit()
 
         current_app.logger.info(f"User registered successfully: {username} ({email}) at {datetime.now()}")
-        return jsonify({"message": "User registered successfully"}), 201
+        return success_response({
+            "user_id": new_user.user_id,
+            "name": new_user.name,
+            "email": new_user.email
+        }), 201
 
 # 로그인
 @auth_ns.route("/login")
 class Login(Resource):
     @main_api.expect(login_model)
+    @main_api.response(200, '로그인 성공', model=success_response_model)
+    @main_api.response(401, '아이디(이메일) 및 비밀번호가 일치하지 않습니다.', model=error_response_model)
     def post(self):
         """
         로그인 엔드포인트
@@ -91,9 +102,8 @@ class Login(Resource):
 
         user = User.query.filter_by(email=email).first()
         if not user or not bcrypt.check_password_hash(user.password, password):
-            # 실패 이력 로깅
             current_app.logger.error(f"Failed login attempt for email: {email} at {datetime.now()}")
-            return jsonify({"message": "Invalid credentials"}), 401
+            raise AuthenticationError("아이디(이메일) 및 비밀번호가 일치하지 않습니다.")
 
         access_token = create_access_token(identity=str(user.email))
         refresh_token = create_refresh_token(identity=str(user.email))
@@ -117,12 +127,17 @@ class Login(Resource):
         db.session.commit()
 
         current_app.logger.info(f"User {user.name} signed in successfully at {datetime.now()}")
-        return jsonify({"access_token": access_token, "refresh_token": refresh_token}), 200
+        return success_response({"user_id": user.user_id, "access_token": access_token, "refresh_token": refresh_token}), 200
+
+
 
 # 토큰 갱신
 @auth_ns.route("/refresh")
 class RefreshToken(Resource):
     @jwt_required(refresh=True)
+    @main_api.doc(security='refreshkey')
+    @main_api.response(200, '엑세스토큰 재발급 성공', model=success_response_model)
+    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
     def post(self):
         """
         엑세스토큰 재발급 엔드포인트
@@ -132,7 +147,7 @@ class RefreshToken(Resource):
         
         if not user:
             current_app.logger.error(f"User not found for email: {identity} at {datetime.now()}")
-            return jsonify({"message": "User not found"}), 404
+            raise AuthenticationError("사용자 인증 실패")
         
         new_access_token = create_access_token(identity=identity, expires_delta=timedelta(minutes=60))
 
@@ -144,12 +159,15 @@ class RefreshToken(Resource):
             db.session.commit()
 
         current_app.logger.info(f"Access token refreshed for user {identity} at {datetime.now()}")
-        return jsonify({"access_token": new_access_token}), 200
+        return success_response({"user_id": user.user_id, "access_token": new_access_token}), 200
 
 # 회원 정보 조회 및 삭제
 @auth_ns.route("/user")
 class UserInfo(Resource):
     @jwt_required()
+    @main_api.doc(security='accesskey')
+    @main_api.response(200, '유저 정보 조회 성공', model=success_response_model)
+    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
     def get(self):
         """
         유저 정보 조회 엔드포인트
@@ -159,12 +177,15 @@ class UserInfo(Resource):
 
         if not user:
             current_app.logger.error(f"User not found for id: {identity} at {datetime.now()}")
-            return jsonify({"message": "User not found"}), 404
+            raise AuthenticationError("사용자 인증 실패")
 
         current_app.logger.info(f"User {user.name} information retrieved successfully at {datetime.now()}")
-        return jsonify({"id": user.user_id, "username": user.name, "email": user.email}), 200
+        return success_response({"user_id": user.user_id, "username": user.name, "email": user.email, "created_at": user.created_at.strftime("%Y-%m-%d %H:%M:%S")}), 200
     
     @jwt_required()
+    @main_api.doc(security='accesskey')
+    @main_api.response(200, '유저 삭제 성공', model=success_response_model)
+    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
     def delete(self):
         """
         유저 삭제 엔드포인트
@@ -174,20 +195,24 @@ class UserInfo(Resource):
 
         if not user:
             current_app.logger.error(f"User not found for id: {identity} at {datetime.now()}")
-            return jsonify({"message": "User not found"}), 404
+            raise AuthenticationError("사용자 인증 실패")
 
         # 사용자 삭제 (Token은 cascade 옵션으로 자동 삭제됨)
         db.session.delete(user)
         db.session.commit()
 
         current_app.logger.info(f"User {identity} deleted successfully at {datetime.now()}")
-        return jsonify({"message": "User deleted successfully"}), 200
+        return success_response({"message": "User({user.email}) deleted successfully"}), 200
 
 # 회원 정보 수정
 @auth_ns.route("/profile")
 class UpdateProfile(Resource):
     @jwt_required()
+    @main_api.doc(security='accesskey')
     @main_api.expect(profile_model)
+    @main_api.response(200, '프로필 수정 성공', model=success_response_model)
+    @main_api.response(400, '비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.', model=error_response_model)
+    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
     def put(self):
         """
         유저 정보 수정 엔드포인트
@@ -197,26 +222,31 @@ class UpdateProfile(Resource):
 
         if not user:
             current_app.logger.error(f"User not found for id: {identity} at {datetime.now()}")
-            return jsonify({"message": "User not found"}), 404
+            raise AuthenticationError("사용자 인증 실패")
 
         data = request.json
         if "password" in data:
-            if len(data["password"]) < 8:
-                current_app.logger.error(f"Password too short for user: {identity} at {datetime.now()}")
-                return jsonify({"message": "Password must be at least 8 characters"}), 400
+            if not is_strong_password(data["password"]):
+                current_app.logger.error(f"Weak password for email: {user.email} at {datetime.now()}")
+                raise ValidationError("비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.")
             user.password = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
         if "name" in data:
             user.name = data["name"]
         db.session.commit()
 
         current_app.logger.info(f"User {identity} profile updated successfully at {datetime.now()}")
-        return jsonify({"message": "Profile updated successfully"}), 200
+        return success_response({
+            "user_id": user.user_id,
+            "name": user.name,
+            "email": user.email,
+            "updated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
+        }), 200
     
 # Namespace 등록
 main_api.add_namespace(auth_ns)
 
-# 에러 핸들링
-@auth_ns.errorhandler(Exception)
-def handle_error(e):
-    current_app.logger.error(f"Error occurred: {str(e)} at {datetime.now()}")
-    return jsonify({"message": "An error occurred"}), 500
+# # 에러 핸들링
+# @auth_ns.errorhandler(Exception)
+# def handle_error(e):
+#     current_app.logger.error(f"Error occurred: {str(e)} at {datetime.now()}")
+#     raise CustomError("서버 에러 발생", 500, "INTERNAL_SERVER_ERROR")
