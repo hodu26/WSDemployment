@@ -1,21 +1,18 @@
-from flask import jsonify, request, current_app
-from flask_restx import  Namespace, Resource, fields
-from . import api_blueprint, main_api
+from flask import request, current_app
+from flask_restx import  Namespace, Resource
+from . import crawl_ns
 from ..models import db, Company, JobPosting, Skill, JobPostingSkill
-from ..schemas import job_post_model, company_model, skill_model, success_response_model, error_response_model
+from ..schemas import job_crawl_model, company_model, skill_model, success_response_model, error_response_model
 from ..services import crawl_job_posts, crawl_company_info
 from ..error_log import success_response, CustomError, ValidationError
 from datetime import datetime
 
-# Namespace 생성
-crawl_ns = Namespace("crawl", description="크롤링 관련 api")
-
 @crawl_ns.route("/update/skills")
 class update_skills_table(Resource):
-    @main_api.expect(skill_model)
-    @main_api.response(200, '스킬 정보 업데이트 성공', model=success_response_model)
-    @main_api.response(400, '스킬 이름을 제공해주세요.', model=error_response_model)
-    @main_api.response(500, '기술 업데이트 실패', model=error_response_model)
+    @crawl_ns.expect(skill_model)
+    @crawl_ns.response(200, '스킬 정보 업데이트 성공', model=success_response_model)
+    @crawl_ns.response(400, '스킬 이름을 제공해주세요.', model=error_response_model)
+    @crawl_ns.response(500, '기술 업데이트 실패', model=error_response_model)
     def post(self):
         """
         기술명을 추가하는 엔드포인트
@@ -46,9 +43,9 @@ class update_skills_table(Resource):
 
 @crawl_ns.route("/company_info")
 class crawl_and_store_company_info(Resource):
-    @main_api.expect(company_model)
-    @main_api.response(200, '회사 정보 크롤링 및 저장 완료', model=success_response_model)
-    @main_api.response(400, '회사명과 링크는 필수입니다.', model=error_response_model)
+    @crawl_ns.expect(company_model)
+    @crawl_ns.response(200, '회사 정보 크롤링 및 저장 완료', model=success_response_model)
+    @crawl_ns.response(400, '회사명과 링크는 필수입니다.', model=error_response_model)
     def post(self):
         """
         사람인 회사 정보를 크롤링하여 데이터베이스에 저장하는 엔드포인트
@@ -94,10 +91,10 @@ class crawl_and_store_company_info(Resource):
 
 @crawl_ns.route("/job_posts")
 class get_job_posts(Resource):
-    @main_api.expect(job_post_model)
-    @main_api.response(200, '크롤링 및 데이터 저장 완료', model=success_response_model)
-    @main_api.response(400, '잘못된 요청 데이터', model=error_response_model)
-    @main_api.response(500, '채용 공고 크롤링 실패', model=error_response_model)
+    @crawl_ns.expect(job_crawl_model)
+    @crawl_ns.response(200, '크롤링 및 데이터 저장 완료', model=success_response_model)
+    @crawl_ns.response(400, '잘못된 요청 데이터', model=error_response_model)
+    @crawl_ns.response(500, '채용 공고 크롤링 실패', model=error_response_model)
     def post(self):
         """
         사람인 키워드별 채용 정보를 크롤링하여 데이터베이스에 저장하는 엔드포인트
@@ -220,6 +217,3 @@ class get_job_posts(Resource):
             db.session.rollback()
             current_app.logger.error(f"Error processing job posts at {datetime.now()}: {str(e)}")
             raise CustomError("채용 공고 크롤링 실패", 500, "STORE_JOB_POSTS_ERROR")
-
-# Namespace 등록
-main_api.add_namespace(crawl_ns)

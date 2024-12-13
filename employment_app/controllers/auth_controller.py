@@ -1,6 +1,6 @@
-from flask import request, jsonify, current_app
-from flask_restx import Namespace, Resource, fields
-from . import main_api
+from flask import request, current_app
+from flask_restx import Namespace, Resource
+from . import auth_ns
 from ..models import db, User, Token
 from ..schemas import register_model, login_model, profile_model, success_response_model, error_response_model
 from ..extensions import bcrypt, KST
@@ -8,9 +8,6 @@ from ..error_log import success_response, AuthenticationError, ValidationError
 from datetime import datetime, timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 import re
-
-# Namespace 생성
-auth_ns = Namespace("auth", description="인증 관련 api")
 
 # 이메일 검증
 def is_valid_email(email):
@@ -27,11 +24,11 @@ def is_strong_password(password):
 # 회원 가입
 @auth_ns.route("/register")
 class Register(Resource):
-    @main_api.expect(register_model)
-    @main_api.response(201, '회원가입 성공', model=success_response_model)
-    @main_api.response(400, '올바른 이메일 형식이 아닙니다.', model=error_response_model)
-    @main_api.response(400, '비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.', model=error_response_model)
-    @main_api.response(400, '이미 존재하는 이메일입니다.', model=error_response_model)
+    @auth_ns.expect(register_model)
+    @auth_ns.response(201, '회원가입 성공', model=success_response_model)
+    @auth_ns.response(400, '올바른 이메일 형식이 아닙니다.', model=error_response_model)
+    @auth_ns.response(400, '비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.', model=error_response_model)
+    @auth_ns.response(400, '이미 존재하는 이메일입니다.', model=error_response_model)
     def post(self):
         """
         회원가입 엔드포인트
@@ -72,9 +69,9 @@ class Register(Resource):
 # 로그인
 @auth_ns.route("/login")
 class Login(Resource):
-    @main_api.expect(login_model)
-    @main_api.response(200, '로그인 성공', model=success_response_model)
-    @main_api.response(401, '아이디(이메일) 및 비밀번호가 일치하지 않습니다.', model=error_response_model)
+    @auth_ns.expect(login_model)
+    @auth_ns.response(200, '로그인 성공', model=success_response_model)
+    @auth_ns.response(401, '아이디(이메일) 및 비밀번호가 일치하지 않습니다.', model=error_response_model)
     def post(self):
         """
         로그인 엔드포인트
@@ -118,9 +115,9 @@ class Login(Resource):
 @auth_ns.route("/refresh")
 class RefreshToken(Resource):
     @jwt_required(refresh=True)
-    @main_api.doc(security='refreshkey')
-    @main_api.response(200, '엑세스토큰 재발급 성공', model=success_response_model)
-    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
+    @auth_ns.doc(security='refreshkey')
+    @auth_ns.response(200, '엑세스토큰 재발급 성공', model=success_response_model)
+    @auth_ns.response(401, '사용자 인증 실패', model=error_response_model)
     def post(self):
         """
         엑세스토큰 재발급 엔드포인트
@@ -148,9 +145,9 @@ class RefreshToken(Resource):
 @auth_ns.route("/user")
 class UserInfo(Resource):
     @jwt_required()
-    @main_api.doc(security='accesskey')
-    @main_api.response(200, '유저 정보 조회 성공', model=success_response_model)
-    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
+    @auth_ns.doc(security='accesskey')
+    @auth_ns.response(200, '유저 정보 조회 성공', model=success_response_model)
+    @auth_ns.response(401, '사용자 인증 실패', model=error_response_model)
     def get(self):
         """
         유저 정보 조회 엔드포인트
@@ -166,9 +163,9 @@ class UserInfo(Resource):
         return success_response({"user_id": user.user_id, "username": user.name, "email": user.email, "created_at": user.created_at.strftime("%Y-%m-%d %H:%M:%S")}), 200
     
     @jwt_required()
-    @main_api.doc(security='accesskey')
-    @main_api.response(200, '유저 삭제 성공', model=success_response_model)
-    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
+    @auth_ns.doc(security='accesskey')
+    @auth_ns.response(200, '유저 삭제 성공', model=success_response_model)
+    @auth_ns.response(401, '사용자 인증 실패', model=error_response_model)
     def delete(self):
         """
         유저 삭제 엔드포인트
@@ -191,11 +188,11 @@ class UserInfo(Resource):
 @auth_ns.route("/profile")
 class UpdateProfile(Resource):
     @jwt_required()
-    @main_api.doc(security='accesskey')
-    @main_api.expect(profile_model)
-    @main_api.response(200, '프로필 수정 성공', model=success_response_model)
-    @main_api.response(400, '비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.', model=error_response_model)
-    @main_api.response(401, '사용자 인증 실패', model=error_response_model)
+    @auth_ns.doc(security='accesskey')
+    @auth_ns.expect(profile_model, location='json')
+    @auth_ns.response(200, '프로필 수정 성공', model=success_response_model)
+    @auth_ns.response(400, '비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.', model=error_response_model)
+    @auth_ns.response(401, '사용자 인증 실패', model=error_response_model)
     def put(self):
         """
         유저 정보 수정 엔드포인트
@@ -224,6 +221,3 @@ class UpdateProfile(Resource):
             "email": user.email,
             "updated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
         }), 200
-    
-# Namespace 등록
-main_api.add_namespace(auth_ns)

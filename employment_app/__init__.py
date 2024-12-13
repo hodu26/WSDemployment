@@ -34,6 +34,10 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
 
+    # PROPAGATE_EXCEPTIONS 설정
+    app.config['PROPAGATE_EXCEPTIONS'] = True
+    app.config['RESTX_MASK_SWAGGER'] = False
+
     # Swagger API 설정
     api = main_api
 
@@ -54,9 +58,6 @@ def create_app():
 
     # 성능 모니터링
     monitor_performance(app)
-
-    # PROPAGATE_EXCEPTIONS 설정
-    app.config['PROPAGATE_EXCEPTIONS'] = True
 
     # 에러 핸들러 설정
     configure_error_handlers(app)

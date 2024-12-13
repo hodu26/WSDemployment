@@ -73,8 +73,13 @@ def crawl_job_posts(keyword, pages=1):
 
 
                     # posted_date에서 날짜 부분만 추출 (예: "24/11/25")
-                    if posted_date:
-                        posted_date = posted_date[-8:].strip()
+                    if posted_date and len(posted_date) >= 8:
+                        try:
+                            posted_date = datetime.strptime(posted_date[-8:], "%y/%m/%d").date()
+                        except ValueError:
+                            posted_date = None
+                    else:
+                        posted_date = None
 
                     # 트렌드 키워드 정보 (있는 경우)
                     trend_badge = job.select_one('.area_badge .badge')
@@ -87,8 +92,17 @@ def crawl_job_posts(keyword, pages=1):
                         # '~ 12/27(금)' -> '12/27'
                         deadline = deadline.split(' ')[-1].split('(')[0].strip()
                         try:
-                            # '12/27' -> '12/27/2024'
-                            deadline = datetime.strptime(deadline, "%m/%d").replace(year=today.year).date()
+                            # '12/27' -> datetime 객체로 변환
+                            deadline_date = datetime.strptime(deadline, "%m/%d").date()
+                            
+                            # 연도 보정
+                            if posted_date and deadline_date.month < posted_date.month:
+                                # 마감일이 게시일보다 이전이라면 다음 해로 설정
+                                deadline_date = deadline_date.replace(year=today.year + 1)
+                            else:
+                                deadline_date = deadline_date.replace(year=today.year)
+
+                            deadline = deadline_date
                         except ValueError:
                             deadline = None
                     else:
@@ -108,7 +122,7 @@ def crawl_job_posts(keyword, pages=1):
                         '고용형태': employment_type,
                         '마감일': deadline,
                         '연봉정보': salary_range,
-                        '작성날짜': datetime.strptime(posted_date, "%y/%m/%d").strftime("%Y-%m-%d"),
+                        '작성날짜': posted_date,
                         '상태': status,
                         '직무분야': job_sector,
                         '회사 정보': company_info

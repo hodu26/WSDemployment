@@ -40,6 +40,26 @@ class JobPosting(db.Model):
     salary_range = db.Column(db.String(64)) 
     posted_date = db.Column(db.Date) 
     status = db.Column(db.Enum('open', 'closed', name='job_status'))
+    views = db.Column(db.Integer, default=0)
+
+    def to_dict(self):
+        """Convert the JobPosting object to a dictionary."""
+        return {
+            'job_post_id': self.job_post_id,
+            'company_id': self.company_id,
+            'trend_keywords': self.trend_keywords,
+            'title': self.title,
+            'link': self.link,
+            'location': self.location,
+            'career_level': self.career_level,
+            'education': self.education,
+            'employment_type': self.employment_type,
+            'deadline': self.deadline.isoformat() if self.deadline else None,  # Handle dates properly
+            'salary_range': self.salary_range,
+            'posted_date': self.posted_date.isoformat() if self.posted_date else None,  # Handle dates properly
+            'status': self.status,
+            'views': self.views
+        }
 
 
 class Skill(db.Model):

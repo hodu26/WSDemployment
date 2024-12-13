@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from flask_jwt_extended.exceptions import WrongTokenError
+from flask_jwt_extended.exceptions import NoAuthorizationError, WrongTokenError
 from werkzeug.exceptions import HTTPException
 
 # HTTP 상태 코드에 대한 문자열 코드 매핑
@@ -76,6 +76,16 @@ def configure_error_handlers(app):
     @app.errorhandler(ValidationError)
     def handle_validation_error(e):
         return e.get_json_response()
+    
+    @app.errorhandler(NoAuthorizationError)
+    def handle_missing_token(e):
+        """JWT 토큰 누락 오류 처리"""
+        app.logger.warning(f"JWT 토큰 누락: {request.method} {request.url}")
+        return error_response("토큰이 없습니다. 인증 헤더를 추가해주세요.", 401)
+    
+    @app.errorhandler(WrongTokenError)
+    def handle_wrong_token_error(e):
+        return error_response("잘못된 토큰이 제공되었습니다.", 401)
     
     @app.errorhandler(Exception)
     def handle_general_exception(e):

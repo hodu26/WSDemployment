@@ -1,5 +1,5 @@
-from flask import Blueprint
-from flask_restx import Api
+from flask import Blueprint, jsonify
+from flask_restx import Api, Namespace
 
 api_blueprint = Blueprint('api', __name__)
 
@@ -40,12 +40,22 @@ main_api = CustomApi(
     title="WD_employment_3",
     version="1.0",
     description="웹서비스 설계 과제 3",
-    doc="/api-docs",
+    doc="/docs",
     authorizations=authorizations
 )
 
+# 네임스페이스 정의
+crawl_ns = Namespace("Crawl", description="크롤링 관련 API")
+auth_ns = Namespace("Auth", description="인증 관련 API")
+job_ns = Namespace("Jobs", description="채용 공고 관련 API")
+
+main_api.add_namespace(crawl_ns, path="/crawl")
+main_api.add_namespace(auth_ns, path="/auth")
+main_api.add_namespace(job_ns, path="/jobs")
+
 from .main_controller import *
 from .auth_controller import *
+from .jobs_controller import *
 
 # # api_blueprint에 auth_bp 등록
 # api_blueprint.register_blueprint(auth_bp, url_prefix='/auth')
