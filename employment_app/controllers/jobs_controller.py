@@ -1,13 +1,50 @@
-from flask import request, current_app
+from flask import current_app
 from flask_jwt_extended import jwt_required
-from flask_restx import Resource
+from flask_smorest import Blueprint as SmorestBlueprint
+from flask.views import MethodView
+from sqlalchemy import select
 from sqlalchemy.orm import aliased
-from . import job_ns
 from ..models import db, JobPosting, Company, Skill, JobPostingSkill
-from ..schemas import job_post_model, job_post_update_model, job_post_del_model, success_response_model, error_response_model
-from ..extensions import JobStatus
+from ..schemas import JobPostSchema, JobPostUpdateSchema, JobPostDelSchema, JobSearchfilterSchema, JobSearchSchema, JobFilterSchema, JobSortSchema, SuccessResponseSchema, ErrorResponseSchema
 from ..error_log import ValidationError, success_response
 from datetime import datetime
+
+# skills 테이블 업데이트
+def update_skills_table(job_sector_list):
+    for sector in job_sector_list:
+        for skill_name in sector:
+            if skill_name.strip() != "외":
+                skill = Skill.query.filter_by(name=skill_name.strip()).first()
+
+                if not skill:
+                    skill = Skill(name=skill_name.strip())
+                    db.session.add(skill)
+                else:
+                    skill.name = skill_name.strip()
+    db.session.commit()
+
+# job_posting_skills 테이블 저장
+def save_job_posting_skills(job_post_id, job_sector_list):
+    for sector in job_sector_list:
+        for skill_name in sector:
+            skill = Skill.query.filter_by(name=skill_name).first()
+            if skill:
+                # job_posting_skills 테이블에 해당 job_post_id와 skill_id 조합이 이미 존재하는지 확인
+                existing_record = JobPostingSkill.query.filter_by(
+                    job_post_id=job_post_id, skill_id=skill.skill_id
+                ).first()
+                
+                # 해당 조합이 없으면 새로운 레코드 추가
+                if not existing_record:
+                    job_posting_skill = JobPostingSkill(
+                        job_post_id=job_post_id, 
+                        skill_id=skill.skill_id
+                    )
+                    db.session.add(job_posting_skill)
+    db.session.commit()
+
+
+job_ns = SmorestBlueprint("Jobs", "Jobs", url_prefix="/jobs", description="채용 공고 관련 API")
 
 # 공통 함수 정의
 def apply_filters(query, filters):
@@ -42,7 +79,7 @@ def apply_filters(query, filters):
         skills = [skill.strip() for skill in filters["skills"].split(",")]
         skill_alias = aliased(Skill)
         subquery = db.session.query(JobPostingSkill.job_post_id).join(skill_alias).filter(skill_alias.name.in_(skills)).subquery()
-        query = query.filter(JobPosting.job_post_id.in_(subquery))
+        query = query.filter(JobPosting.job_post_id.in_(select(subquery)))
     return query
 
 def add_skills_to_jobs(jobs):
@@ -77,27 +114,18 @@ def apply_sorting(query, sort):
 
 # Job 리소스 엔드포인트
 @job_ns.route("")
-class JobList(Resource):
-    @job_ns.expect(job_ns.parser()
-                   .add_argument('keyword', type=str, help='키워드 검색 (title, company, position(skill) ...)', default='채용')
-                   .add_argument('location', type=str, help='지역 필터링', default='서울')
-                   .add_argument('career_level', type=str, help='최소 경력 필터링', default='2년')
-                   .add_argument('salary', type=str, help='최소 급여 필터링', default='1000만원')
-                   .add_argument('skills', type=str, help='필요한 스킬 리스트 (쉼표로 구분)', default='C++,웹개발')
-                   .add_argument('sort', type=str, choices=('deadline_asc', 'deadline_desc', 'posted_date_desc', 'view_desc', 'salary_asc', 'salary_desc'), help='정렬 기준 선택', default='view_desc')
-                   .add_argument('page', type=int, help='페이지 번호', default=1)
-                   .add_argument('limit', type=int, help='한 페이지당 개수', default=20))
-    @job_ns.response(200, 'Success', model=success_response_model)
-    @job_ns.response(400, 'Validation Error', model=error_response_model)
-    def get(self):
+class JobList(MethodView):
+    @job_ns.arguments(JobSearchfilterSchema, location='query')
+    @job_ns.response(200, SuccessResponseSchema)
+    @job_ns.response(400, ErrorResponseSchema)
+    def get(self, args):
         """
         채용 공고 목록 조회 기능 (검색, 필터링, 정렬, 페이지네이션)
         """
-        args = request.args
         filters = {key: args.get(key) for key in ['keyword', 'location', 'career_level', 'salary', 'skills']}
         sort = args.get('sort')
-        page = args.get('page', 1, type=int)
-        limit = args.get('limit', 20, type=int)
+        page = args.get('page', 1)
+        limit = args.get('limit', 20)
 
         query = apply_filters(JobPosting.query, filters)
         query = apply_sorting(query, sort)
@@ -113,15 +141,15 @@ class JobList(Resource):
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
     @jwt_required()
-    @job_ns.doc(security='accesskey')
-    @job_ns.response(201, '채용 공고 등록 성공', model=success_response_model)
-    @job_ns.response(400, 'Validation Error', model=error_response_model)
-    @job_ns.expect(job_post_model, validate=True)
-    def post(self):
+    @job_ns.doc(security=[{"accesskey": []}])
+    @job_ns.arguments(JobPostSchema)
+    @job_ns.response(201, SuccessResponseSchema)
+    @job_ns.response(400, ErrorResponseSchema)
+    def post(self, request):
         """
         새로운 채용 공고 등록
         """
-        data = request.json
+        data = request
 
         # 데이터 유효성 검사
         required_fields = ['title', 'location', 'salary', 'career_level', 'skills', 'company']
@@ -152,8 +180,7 @@ class JobList(Resource):
             db.session.add(company)
             db.session.commit()
 
-        deadline=data.get('deadline', '')
-        deadline=datetime.strptime(deadline, "%Y-%m-%d").date()
+        deadline=data.get('deadline', None)
 
         # 새로운 JobPosting 객체 생성
         new_job = JobPosting(
@@ -176,17 +203,19 @@ class JobList(Resource):
 
          # 스킬 추가
         if 'skills' in data:
-            skills = [skill.strip(',').strip() for skill in data['skills'].split()]
+            skills = [skill.strip() for skill in data['skills'].split(',')]
+            update_skills_table([skills])
+            save_job_posting_skills(new_job.job_post_id, [skills])
             # 새로운 스킬 추가
-            for skill_name in skills:
-                skill = Skill.query.filter_by(name=skill_name).first()
-                if not skill:
-                    skill = Skill(name=skill_name)
-                    db.session.add(skill)
-                    db.session.commit()
-                job_skill = JobPostingSkill(job_post_id=new_job.job_post_id, skill_id=skill.skill_id)
-                db.session.add(job_skill)
-            db.session.commit()
+            # for skill_name in skills:
+            #     skill = Skill.query.filter_by(name=skill_name).first()
+            #     if not skill:
+            #         skill = Skill(name=skill_name)
+            #         db.session.add(skill)
+            #         db.session.commit()
+            #     job_skill = JobPostingSkill(job_post_id=new_job.job_post_id, skill_id=skill.skill_id)
+            #     db.session.add(job_skill)
+            # db.session.commit()
 
         job_data = new_job.to_dict()
         job_data['skills'] = skills
@@ -194,16 +223,16 @@ class JobList(Resource):
         return success_response({"job": job_data}), 201
     
     @jwt_required()
-    @job_ns.doc(security='accesskey')
-    @job_ns.expect(job_post_update_model, validate=True)
-    @job_ns.response(200, '채용 공고 수정 성공', model=success_response_model)
-    @job_ns.response(400, 'Validation Error', model=error_response_model)
-    @job_ns.response(404, '해당 채용 공고 없음', model=error_response_model)
-    def put(self):
+    @job_ns.doc(security=[{"accesskey": []}])
+    @job_ns.arguments(JobPostUpdateSchema)
+    @job_ns.response(200, SuccessResponseSchema)
+    @job_ns.response(400, ErrorResponseSchema)
+    @job_ns.response(404, ErrorResponseSchema)
+    def put(self, request):
         """
         채용 공고 수정
         """
-        data = request.json
+        data = request
 
         # 데이터 유효성 검사
         required_fields = ['select_post']
@@ -240,7 +269,7 @@ class JobList(Resource):
             job.company_id = company.company_id  # 새로운 회사 정보 연결
         
         if 'deadline' in data:
-            deadline=datetime.strptime(data['deadline'], "%Y-%m-%d").date()
+            deadline=data['deadline']
             job.deadline = deadline
 
         # 공고 정보 업데이트
@@ -257,26 +286,29 @@ class JobList(Resource):
 
         # 스킬 업데이트
         if 'skills' in data:
-            skills = [skill.strip(',').strip() for skill in data['skills'].split()]
+            skills = [skill.strip() for skill in data['skills'].split(',')]
             # 기존 JobPostingSkill 삭제
             JobPostingSkill.query.filter_by(job_post_id=job.job_post_id).delete()
             db.session.commit()
 
             # 새로운 스킬 추가
-            for skill_name in skills:
-                skill = Skill.query.filter_by(name=skill_name).first()
-                if not skill:
-                    skill = Skill(name=skill_name)
-                    db.session.add(skill)
-                    db.session.commit()
-                job_skill = JobPostingSkill(job_post_id=job.job_post_id, skill_id=skill.skill_id)
-                db.session.add(job_skill)
+            update_skills_table([skills])
+            save_job_posting_skills(job.job_post_id, [skills])
+            # for skill_name in skills:
+            #     skill = Skill.query.filter_by(name=skill_name).first()
+            #     if not skill:
+            #         skill = Skill(name=skill_name)
+            #         db.session.add(skill)
+            #         db.session.commit()
+            #     job_skill = JobPostingSkill(job_post_id=job.job_post_id, skill_id=skill.skill_id)
+            #     db.session.add(job_skill)
 
         db.session.commit()
 
         # 업데이트된 공고 정보 반환
         updated_job = JobPosting.query.get(job.job_post_id)
         updated_job_data = updated_job.to_dict()
+        updated_job_data['skills'] = skills
 
         # 공고와 연결된 스킬 정보 추가
         updated_job_skills = db.session.query(Skill.name).join(JobPostingSkill).filter(
@@ -287,16 +319,16 @@ class JobList(Resource):
         return success_response({"job": updated_job_data}), 200
 
     @jwt_required()
-    @job_ns.doc(security='accesskey')
-    @job_ns.expect(job_post_del_model, validate=True)
-    @job_ns.response(200, '채용 공고 삭제 성공', model=success_response_model)
-    @job_ns.response(400, 'Validation Error', model=error_response_model)
-    @job_ns.response(404, '해당 채용 공고 없음', model=error_response_model)
-    def delete(self):
+    @job_ns.doc(security=[{"accesskey": []}])
+    @job_ns.arguments(JobPostDelSchema)
+    @job_ns.response(200, SuccessResponseSchema)
+    @job_ns.response(400, ErrorResponseSchema)
+    @job_ns.response(404, ErrorResponseSchema)
+    def delete(self, request):
         """
         채용 공고 삭제
         """
-        data = request.json
+        data = request
 
         job = JobPosting.query.filter_by(title=data['select_post']).first()
         if not job:
@@ -313,18 +345,14 @@ class JobList(Resource):
         return success_response({"message": f"Job({job.title}) deleted successfully"}), 200
 
 @job_ns.route("/search")
-class JobSearch(Resource):
-    @job_ns.expect(job_ns.parser()
-                   .add_argument('keyword', type=str, help='키워드 검색 (title, company, position(skill) ...)', default='채용')
-                   .add_argument('page', type=int, help='페이지 번호', default=1)
-                   .add_argument('limit', type=int, help='한 페이지당 개수', default=20))
-    @job_ns.response(200, 'Success', model=success_response_model)
-    @job_ns.response(400, 'Validation Error', model=error_response_model)
-    def get(self):
+class JobSearch(MethodView):
+    @job_ns.arguments(JobSearchSchema, location='query')
+    @job_ns.response(200, SuccessResponseSchema)
+    @job_ns.response(400, ErrorResponseSchema)
+    def get(self, args):
         """
         채용 공고 검색
         """
-        args = request.args
         keyword = args.get('keyword', '').strip()
 
         if not keyword:
@@ -332,8 +360,8 @@ class JobSearch(Resource):
             raise ValidationError("검색 키워드가 필요합니다.")
         
         filters = {key: args.get(key) for key in ['keyword']}
-        page = args.get('page', 1, type=int)
-        limit = args.get('limit', 20, type=int)
+        page = args.get('page', 1)
+        limit = args.get('limit', 20)
 
         query = apply_filters(JobPosting.query, filters)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
@@ -348,29 +376,18 @@ class JobSearch(Resource):
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
 @job_ns.route("/filter")
-class JobFilter(Resource):
-    @job_ns.expect(job_ns.parser()
-                   .add_argument('keyword', type=str, help='키워드 검색 (title, company, position(skill) ...)', default='채용')
-                   .add_argument('location', type=str, help='지역 필터링', default='서울')
-                   .add_argument('career_level', type=str, help='최소 경력 필터링', default='2년')
-                   .add_argument('salary', type=str, help='최소 급여 필터링', default='1000만원')
-                   .add_argument('status', type=JobStatus, help='상태 필터링', choices=[status.value for status in JobStatus], default=JobStatus.OPEN.value)
-                   .add_argument('trend_keywords', type=str, help='트렌드 키워드 필터링', default='취업')
-                   .add_argument('skills', type=str, help='필요한 스킬 리스트 (쉼표로 구분)', default='C++,웹개발')
-                   .add_argument('sort', type=str, choices=('deadline_asc', 'deadline_desc', 'posted_date_desc', 'view_desc', 'salary_asc', 'salary_desc'), help='정렬 기준 선택', default='view_desc')
-                   .add_argument('page', type=int, help='페이지 번호', default=1)
-                   .add_argument('limit', type=int, help='한 페이지당 개수', default=20))
-    @job_ns.response(200, 'Success', model=success_response_model)
-    @job_ns.response(400, 'Validation Error', model=error_response_model)
-    def get(self):
+class JobFilter(MethodView):
+    @job_ns.arguments(JobFilterSchema, location='query')
+    @job_ns.response(200, SuccessResponseSchema)
+    @job_ns.response(400, ErrorResponseSchema)
+    def get(self, args):
         """
         채용 공고 필터링
         """
-        args = request.args
         filters = {key: args.get(key) for key in ['keyword', 'location', 'career_level', 'salary', 'status', 'trend_keywords', 'skills']}
         sort = args.get('sort')
-        page = args.get('page', 1, type=int)
-        limit = args.get('limit', 20, type=int)
+        page = args.get('page', 1)
+        limit = args.get('limit', 20)
 
         query = apply_filters(JobPosting.query, filters)
         query = apply_sorting(query, sort)
@@ -386,18 +403,14 @@ class JobFilter(Resource):
         return success_response({"jobs": jobs_with_skills}, pagination), 200
         
 @job_ns.route("/sort")
-class JobSort(Resource):
-    @job_ns.expect(job_ns.parser()
-                   .add_argument('sort', type=str, choices=('deadline_asc', 'deadline_desc', 'posted_date_desc', 'view_desc', 'salary_asc', 'salary_desc'), help='정렬 기준 선택', default='view_desc')
-                   .add_argument('page', type=int, help='페이지 번호', default=1)
-                   .add_argument('limit', type=int, help='한 페이지당 개수', default=20))
-    @job_ns.response(200, 'Success', model=success_response_model)
-    @job_ns.response(400, 'Validation Error', model=error_response_model)
-    def get(self):
+class JobSort(MethodView):
+    @job_ns.arguments(JobSortSchema, location='query')
+    @job_ns.response(200, SuccessResponseSchema)
+    @job_ns.response(400, ErrorResponseSchema)
+    def get(self, args):
         """
         채용 공고 정렬
         """
-        args = request.args
         sort = args.get('sort')
 
         if not sort:
@@ -424,9 +437,9 @@ class JobSort(Resource):
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
 @job_ns.route("/<int:id>")
-class JobDetail(Resource):
-    @job_ns.response(200, 'Success', model=success_response_model)
-    @job_ns.response(404, '해당 채용 공고 없음', model=error_response_model)
+class JobDetail(MethodView):
+    @job_ns.response(200, SuccessResponseSchema)
+    @job_ns.response(404, ErrorResponseSchema)
     def get(self, id):
         """
         단일 채용 공고 상세 조회

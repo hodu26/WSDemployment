@@ -23,7 +23,7 @@ def success_response(data=None, pagination=None):
     }
     if pagination:
         response["pagination"] = pagination
-    return jsonify(response).get_json()
+    return jsonify(response)
 
 # 실패 응답 생성 함수
 def error_response(message, status_code=400):
@@ -33,7 +33,7 @@ def error_response(message, status_code=400):
         "message": message,
         "code": error_codes.get(status_code, "UNKNOWN_ERROR")
     }
-    return jsonify(response).get_json(), status_code
+    return jsonify(response), status_code
 
 # 커스텀 오류 기본 클래스
 class CustomError(HTTPException):

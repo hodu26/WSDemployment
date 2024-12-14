@@ -1,23 +1,39 @@
 from flask import request, current_app
-from flask_restx import  Namespace, Resource
-from . import crawl_ns
+from flask_smorest import Api, Blueprint as SmorestBlueprint
+from flask.views import MethodView
 from ..models import db, Company, JobPosting, Skill, JobPostingSkill
-from ..schemas import job_crawl_model, company_model, skill_model, success_response_model, error_response_model
+from ..schemas import JobCrawlSchema, CompanySchema, SkillSchema, SuccessResponseSchema, ErrorResponseSchema
 from ..services import crawl_job_posts, crawl_company_info
 from ..error_log import success_response, CustomError, ValidationError
 from datetime import datetime
 
+crawl_ns = SmorestBlueprint("Crawl", "Crawl", url_prefix="/crawl", description="크롤링 관련 API")
+
+# skills 테이블 업데이트
+def update_skills_table(job_sector_list):
+    for sector in job_sector_list:
+        for skill_name in sector:
+            if skill_name.strip() != "외":
+                skill = Skill.query.filter_by(name=skill_name.strip()).first()
+
+                if not skill:
+                    skill = Skill(name=skill_name.strip())
+                    db.session.add(skill)
+                else:
+                    skill.name = skill_name.strip()
+    db.session.commit()
+
 @crawl_ns.route("/update/skills")
-class update_skills_table(Resource):
-    @crawl_ns.expect(skill_model)
-    @crawl_ns.response(200, '스킬 정보 업데이트 성공', model=success_response_model)
-    @crawl_ns.response(400, '스킬 이름을 제공해주세요.', model=error_response_model)
-    @crawl_ns.response(500, '기술 업데이트 실패', model=error_response_model)
-    def post(self):
+class update_skills_table(MethodView):
+    @crawl_ns.arguments(SkillSchema)
+    @crawl_ns.response(200, SuccessResponseSchema)
+    @crawl_ns.response(400, ErrorResponseSchema)
+    @crawl_ns.response(500, ErrorResponseSchema)
+    def post(self, request):
         """
         기술명을 추가하는 엔드포인트
         """
-        data = request.json
+        data = request
         skill_name = data.get('skill')
 
         if not skill_name:
@@ -42,15 +58,16 @@ class update_skills_table(Resource):
             raise CustomError("기술 업데이트 실패", 500, "UPDATE_SKILL_ERROR")
 
 @crawl_ns.route("/company_info")
-class crawl_and_store_company_info(Resource):
-    @crawl_ns.expect(company_model)
-    @crawl_ns.response(200, '회사 정보 크롤링 및 저장 완료', model=success_response_model)
-    @crawl_ns.response(400, '회사명과 링크는 필수입니다.', model=error_response_model)
-    def post(self):
+class crawl_and_store_company_info(MethodView):
+    @crawl_ns.arguments(CompanySchema)
+    @crawl_ns.response(200, SuccessResponseSchema)
+    @crawl_ns.response(400, ErrorResponseSchema)
+    def post(self, request):
         """
         사람인 회사 정보를 크롤링하여 데이터베이스에 저장하는 엔드포인트
         """
-        data = request.json
+        data = request
+        print(data)
         company_name = data.get('company_name')
         link = data.get('link')
 
@@ -90,29 +107,15 @@ class crawl_and_store_company_info(Resource):
             raise CustomError("회사 정보 저장 실패", 500, "STORE_COMPANY_INFO_ERROR")
 
 @crawl_ns.route("/job_posts")
-class get_job_posts(Resource):
-    @crawl_ns.expect(job_crawl_model)
-    @crawl_ns.response(200, '크롤링 및 데이터 저장 완료', model=success_response_model)
-    @crawl_ns.response(400, '잘못된 요청 데이터', model=error_response_model)
-    @crawl_ns.response(500, '채용 공고 크롤링 실패', model=error_response_model)
-    def post(self):
+class get_job_posts(MethodView):
+    @crawl_ns.arguments(JobCrawlSchema)
+    @crawl_ns.response(200, SuccessResponseSchema)
+    @crawl_ns.response(400, ErrorResponseSchema)
+    @crawl_ns.response(500, ErrorResponseSchema)
+    def post(self, request):
         """
         사람인 키워드별 채용 정보를 크롤링하여 데이터베이스에 저장하는 엔드포인트
         """
-
-        # skills 테이블 업데이트
-        def update_skills_table(job_sector_list):
-            for sector in job_sector_list:
-                for skill_name in sector:
-                    if skill_name.strip() != "외":
-                        skill = Skill.query.filter_by(name=skill_name.strip()).first()
-
-                        if not skill:
-                            skill = Skill(name=skill_name.strip())
-                            db.session.add(skill)
-                        else:
-                            skill.name = skill_name.strip()
-            db.session.commit()
 
         # job_posting_skills 테이블 저장
         def save_job_posting_skills(job_post_id, job_sector_list):
@@ -135,7 +138,7 @@ class get_job_posts(Resource):
             db.session.commit()
 
 
-        data = request.json
+        data = request
         keyword = data.get('keyword', 'IT개발·데이터')
         pages = data.get('pages', 1)
 

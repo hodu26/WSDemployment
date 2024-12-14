@@ -16,4 +16,27 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
-    JWT_SECRET_KEY = os.getenv("SECRET_KEY", "default-jwt-secret-key")  # JWT 비밀 키
+
+    # JWT 설정
+    JWT_SECRET_KEY = os.getenv("SECRET_KEY", "your_jwt_secret_key")  # JWT 인증용 시크릿 키
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600))  # 액세스 토큰 만료 시간 (초)
+    JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", 86400))  # 리프레시 토큰 만료 시간 (초)
+    JWT_TOKEN_LOCATION = ["headers"]  # 토큰을 헤더에서 읽음
+    JWT_HEADER_NAME = "Authorization"  # JWT 토큰의 헤더 이름
+    JWT_HEADER_TYPE = "Bearer"  # JWT 토큰 타입 (Bearer)
+
+    # Swagger/OpenAPI 설정
+    API_TITLE = "My API"
+    API_VERSION = "v1"
+    OPENAPI_VERSION = "3.0.3"
+    OPENAPI_JSON_PATH = "swagger.json"
+    OPENAPI_URL_PREFIX = "/"
+    OPENAPI_SWAGGER_UI_PATH = "/"
+    OPENAPI_SWAGGER_UI_URL = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@latest/"
+    OPENAPI_SWAGGER_UI_CONFIG = {
+        "docExpansion": "list",  # 문서 확장 설정
+        "filter": True,  # 검색 창 활성화
+    }
+
+    # 추가 설정 (필요 시)
+    PROPAGATE_EXCEPTIONS = True

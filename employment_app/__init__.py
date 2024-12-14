@@ -1,14 +1,16 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_migrate import Migrate
 from config import Config
-from flask_restx import Api
+from flask_smorest import Api
 from .views.main_routes import main_blueprint
-from .controllers import api_blueprint, main_api
+from .controllers import api_blueprint, init_api
 from .models import db # models에 선언된 db 객체 사용
+from .schemas import swagger_security_schemes, swagger_servers
 from .extensions import bcrypt, jwt # 확장 프로그램 사용
 from .error_log import configure_error_handlers, configure_logger, monitor_performance
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text  # text를 import
+from flask_marshmallow import Marshmallow
 
 def create_app():
     """Flask 애플리케이션을 생성하고 설정합니다."""
@@ -23,6 +25,8 @@ def create_app():
     # Flask 설정을 로드합니다.
     app.config.from_object(Config)
 
+    ma = Marshmallow(app)
+
     # 모델 임포트
     from .models.model import User, Company, JobPosting, Skill, JobPostingSkill, Token, Bookmark, Application
 
@@ -34,12 +38,14 @@ def create_app():
     bcrypt.init_app(app)
     jwt.init_app(app)
 
-    # PROPAGATE_EXCEPTIONS 설정
-    app.config['PROPAGATE_EXCEPTIONS'] = True
-    app.config['RESTX_MASK_SWAGGER'] = False
-
     # Swagger API 설정
-    api = main_api
+    api = Api(app)
+    api.spec.components.security_schemes.update(swagger_security_schemes)  # 보안 스키마 추가
+    api.spec.options["servers"] = swagger_servers  # 서버 추가
+    api.spec.options["security"] = [{"accesskey": []}, {"refreshkey": []}]  # 'Authorize' 버튼 활성화
+
+    # 블루프린트 및 네임스페이스 초기화
+    init_api(api)  # `api` 객체를 전달하여 네임스페이스 등록
 
     # 블루프린트 등록
     app.register_blueprint(main_blueprint)  # 기본 라우트 등록

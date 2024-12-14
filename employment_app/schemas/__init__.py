@@ -5,3 +5,6 @@ from .job_schema import *
 
 # 응답 스키마
 from .response_schema import *
+
+# swagger 스키마
+from .swagger_schema import *
