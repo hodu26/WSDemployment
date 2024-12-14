@@ -152,6 +152,29 @@ class UserInfo(MethodView):
         current_app.logger.info(f"User {user.name} information retrieved successfully at {datetime.now()}")
         return success_response({"user_id": user.user_id, "username": user.name, "email": user.email, "created_at": user.created_at.strftime("%Y-%m-%d %H:%M:%S")}), 200
     
+    @jwt_required()
+    @auth_ns.doc(security=[{"accesskey": []}])
+    @auth_ns.response(200, SuccessResponseSchema)
+    @auth_ns.response(401, ErrorResponseSchema)
+    def delete(self):
+        """
+        유저 삭제 엔드포인트
+        """
+        identity = get_jwt_identity()
+        user = User.query.filter_by(email=identity).first()
+
+        if not user:
+            current_app.logger.error(f"User not found for id: {identity} at {datetime.now()}")
+            raise AuthenticationError("사용자 인증 실패")
+
+        # 사용자 삭제 (Token은 cascade 옵션으로 자동 삭제됨)
+        email = user.email
+        db.session.delete(user)
+        db.session.commit()
+
+        current_app.logger.info(f"User {identity} deleted successfully at {datetime.now()}")
+        return success_response({"message": f"User({email}) deleted successfully"}), 200
+    
     # 회원 정보 수정
 @auth_ns.route("/profile")
 class UpdateProfile(MethodView):
@@ -189,25 +212,3 @@ class UpdateProfile(MethodView):
             "email": user.email,
             "updated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
         }), 200
-    
-    @jwt_required()
-    @auth_ns.doc(security=[{"accesskey": []}])
-    @auth_ns.response(200, SuccessResponseSchema)
-    @auth_ns.response(401, ErrorResponseSchema)
-    def delete(self):
-        """
-        유저 삭제 엔드포인트
-        """
-        identity = get_jwt_identity()
-        user = User.query.filter_by(email=identity).first()
-
-        if not user:
-            current_app.logger.error(f"User not found for id: {identity} at {datetime.now()}")
-            raise AuthenticationError("사용자 인증 실패")
-
-        # 사용자 삭제 (Token은 cascade 옵션으로 자동 삭제됨)
-        db.session.delete(user)
-        db.session.commit()
-
-        current_app.logger.info(f"User {identity} deleted successfully at {datetime.now()}")
-        return success_response({"message": f"User({user.email}) deleted successfully"}), 200

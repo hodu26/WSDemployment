@@ -12,7 +12,12 @@ class User(db.Model):
     created_at = db.Column(DateTime, default=lambda: datetime.now(KST), nullable=False)  # 삽입 시 기본값
     updated_at = db.Column(DateTime, default=lambda: datetime.now(KST), onupdate=lambda: datetime.now(KST), nullable=False)  # 수정 시 갱신
 
-    tokens = db.relationship('Token', backref='user', cascade='all, delete')
+    token = db.relationship('Token', backref='user', cascade='all, delete')
+    bookmark = db.relationship('Bookmark', backref='user', cascade='all, delete')
+    application = db.relationship('Application', backref='user', cascade='all, delete')
+    inquirie = db.relationship('Inquiry', backref='user', cascade='all, delete')
+    review = db.relationship('Review', backref='user', cascade='all, delete')
+
 
     def to_dict(self):
         return {
@@ -131,7 +136,6 @@ class Bookmark(db.Model):
     job_post_id = db.Column(db.Integer, db.ForeignKey('job_postings.job_post_id'), nullable=False)
     created_at = db.Column(DateTime, default=lambda: datetime.now(KST), nullable=False)
 
-    user = db.relationship('User', backref='bookmarks')
     job_posting = db.relationship('JobPosting', backref='bookmarks')
 
     def to_dict(self):
@@ -153,7 +157,6 @@ class Application(db.Model):
     applied_at = db.Column(DateTime, default=lambda: datetime.now(KST), onupdate=lambda: datetime.now(KST), nullable=False)
     resume_url = db.Column(db.String(128))
 
-    user = db.relationship('User', backref='applications')
     job_posting = db.relationship('JobPosting', backref='applications')
     company = db.relationship('Company', backref='applications')
 
@@ -165,4 +168,46 @@ class Application(db.Model):
             'status': self.status,
             'applied_at': self.applied_at.isoformat() if self.applied_at else None,
             'resume_url': self.resume_url
+        }
+    
+class Inquiry(db.Model):
+    __tablename__ = 'inquiries'
+    inquiry_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    job_post_id = db.Column(db.Integer, db.ForeignKey('job_postings.job_post_id'), nullable=False)
+    title = db.Column(db.String(128), nullable=False) 
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(DateTime, default=lambda: datetime.now(KST), onupdate=lambda: datetime.now(KST), nullable=False)
+
+    job_posting = db.relationship('JobPosting', backref='inquries')
+
+    def to_dict(self):
+        return {
+            "inquiry_id": self.inquiry_id,
+            "user_id": self.user_id,
+            'job_posting': self.job_posting.to_dict() if self.job_posting else None,
+            "title": self.title,
+            "message": self.message,
+            "created_at": self.created_at.isoformat()
+        }
+    
+class Review(db.Model):
+    __tablename__ = 'reviews'
+    review_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('companies.company_id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    review_text = db.Column(db.Text, nullable=True)
+    created_at = db.Column(DateTime, default=lambda: datetime.now(KST), onupdate=lambda: datetime.now(KST), nullable=False)
+
+    company = db.relationship('Company', backref='reviews')
+
+    def to_dict(self):
+        return {
+            "review_id": self.review_id,
+            "user_id": self.user_id,
+            'company': self.company.to_dict() if self.company else None,
+            "rating": self.rating,
+            "review_text": self.review_text,
+            "created_at": self.created_at.isoformat()
         }
