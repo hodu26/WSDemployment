@@ -9,20 +9,6 @@ from datetime import datetime
 
 crawl_ns = SmorestBlueprint("Crawl", "Crawl", url_prefix="/crawl", description="크롤링 관련 API")
 
-# skills 테이블 업데이트
-def update_skills_table(job_sector_list):
-    for sector in job_sector_list:
-        for skill_name in sector:
-            if skill_name.strip() != "외":
-                skill = Skill.query.filter_by(name=skill_name.strip()).first()
-
-                if not skill:
-                    skill = Skill(name=skill_name.strip())
-                    db.session.add(skill)
-                else:
-                    skill.name = skill_name.strip()
-    db.session.commit()
-
 @crawl_ns.route("/update/skills")
 class update_skills_table(MethodView):
     @crawl_ns.arguments(SkillSchema)
@@ -55,7 +41,7 @@ class update_skills_table(MethodView):
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error updating skills at {datetime.now()}: {str(e)}")
-            raise CustomError("기술 업데이트 실패", 500, "UPDATE_SKILL_ERROR")
+            raise CustomError("기술 업데이트 실패", 500)
 
 @crawl_ns.route("/company_info")
 class crawl_and_store_company_info(MethodView):
@@ -104,7 +90,7 @@ class crawl_and_store_company_info(MethodView):
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error storing company info at {datetime.now()}: {str(e)}")
-            raise CustomError("회사 정보 저장 실패", 500, "STORE_COMPANY_INFO_ERROR")
+            raise CustomError("회사 정보 저장 실패", 500)
 
 @crawl_ns.route("/job_posts")
 class get_job_posts(MethodView):
@@ -116,6 +102,19 @@ class get_job_posts(MethodView):
         """
         사람인 키워드별 채용 정보를 크롤링하여 데이터베이스에 저장하는 엔드포인트
         """
+        # skills 테이블 업데이트
+        def update_skills_table(job_sector_list):
+            for sector in job_sector_list:
+                for skill_name in sector:
+                    if skill_name.strip() != "외":
+                        skill = Skill.query.filter_by(name=skill_name.strip()).first()
+
+                        if not skill:
+                            skill = Skill(name=skill_name.strip())
+                            db.session.add(skill)
+                        else:
+                            skill.name = skill_name.strip()
+            db.session.commit()
 
         # job_posting_skills 테이블 저장
         def save_job_posting_skills(job_post_id, job_sector_list):
@@ -219,4 +218,4 @@ class get_job_posts(MethodView):
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error processing job posts at {datetime.now()}: {str(e)}")
-            raise CustomError("채용 공고 크롤링 실패", 500, "STORE_JOB_POSTS_ERROR")
+            raise CustomError("채용 공고 크롤링 실패", 500)

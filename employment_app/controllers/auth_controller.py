@@ -164,6 +164,44 @@ class UserInfo(MethodView):
         current_app.logger.info(f"User {user.name} information retrieved successfully at {datetime.now()}")
         return success_response({"user_id": user.user_id, "username": user.name, "email": user.email, "created_at": user.created_at.strftime("%Y-%m-%d %H:%M:%S")}), 200
     
+    # 회원 정보 수정
+@auth_ns.route("/profile")
+class UpdateProfile(MethodView):
+    @jwt_required()
+    @auth_ns.doc(security=[{"accesskey": []}])
+    @auth_ns.arguments(ProfileSchema)
+    @auth_ns.response(200, SuccessResponseSchema)
+    @auth_ns.response(400, ErrorResponseSchema)
+    @auth_ns.response(401, ErrorResponseSchema)
+    def put(self, request):
+        """
+        유저 정보 수정 엔드포인트
+        """
+        identity = get_jwt_identity()
+        user = User.query.filter_by(email=identity).first()
+
+        if not user:
+            current_app.logger.error(f"User not found for id: {identity} at {datetime.now()}")
+            raise AuthenticationError("사용자 인증 실패")
+
+        data = request
+        if "password" in data:
+            if not is_strong_password(data["password"]):
+                current_app.logger.error(f"Weak password for email: {user.email} at {datetime.now()}")
+                raise ValidationError("비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.")
+            user.password = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
+        if "name" in data:
+            user.name = data["name"]
+        db.session.commit()
+
+        current_app.logger.info(f"User {identity} profile updated successfully at {datetime.now()}")
+        return success_response({
+            "user_id": user.user_id,
+            "name": user.name,
+            "email": user.email,
+            "updated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
+        }), 200
+    
     @jwt_required()
     @auth_ns.doc(security=[{"accesskey": []}])
     @auth_ns.response(200, SuccessResponseSchema)
@@ -184,42 +222,4 @@ class UserInfo(MethodView):
         db.session.commit()
 
         current_app.logger.info(f"User {identity} deleted successfully at {datetime.now()}")
-        return success_response({"message": "User({user.email}) deleted successfully"}), 200
-
-# 회원 정보 수정
-@auth_ns.route("/profile")
-class UpdateProfile(MethodView):
-    @jwt_required()
-    @auth_ns.doc(security=[{"accesskey": []}])
-    @auth_ns.arguments(ProfileSchema)
-    @auth_ns.response(200, SuccessResponseSchema)
-    @auth_ns.response(400, ErrorResponseSchema)
-    @auth_ns.response(401, ErrorResponseSchema)
-    def put(self,):
-        """
-        유저 정보 수정 엔드포인트
-        """
-        identity = get_jwt_identity()
-        user = User.query.filter_by(email=identity).first()
-
-        if not user:
-            current_app.logger.error(f"User not found for id: {identity} at {datetime.now()}")
-            raise AuthenticationError("사용자 인증 실패")
-
-        data = request.json
-        if "password" in data:
-            if not is_strong_password(data["password"]):
-                current_app.logger.error(f"Weak password for email: {user.email} at {datetime.now()}")
-                raise ValidationError("비밀번호는 8자리 이상이어야 하며, 최소 한개의 대/소문자를 포함해야하고, 숫자 및 특수기호가 포함되어야 합니다.")
-            user.password = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
-        if "name" in data:
-            user.name = data["name"]
-        db.session.commit()
-
-        current_app.logger.info(f"User {identity} profile updated successfully at {datetime.now()}")
-        return success_response({
-            "user_id": user.user_id,
-            "name": user.name,
-            "email": user.email,
-            "updated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
-        }), 200
+        return success_response({"message": f"User({user.email}) deleted successfully"}), 200

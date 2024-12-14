@@ -206,16 +206,6 @@ class JobList(MethodView):
             skills = [skill.strip() for skill in data['skills'].split(',')]
             update_skills_table([skills])
             save_job_posting_skills(new_job.job_post_id, [skills])
-            # 새로운 스킬 추가
-            # for skill_name in skills:
-            #     skill = Skill.query.filter_by(name=skill_name).first()
-            #     if not skill:
-            #         skill = Skill(name=skill_name)
-            #         db.session.add(skill)
-            #         db.session.commit()
-            #     job_skill = JobPostingSkill(job_post_id=new_job.job_post_id, skill_id=skill.skill_id)
-            #     db.session.add(job_skill)
-            # db.session.commit()
 
         job_data = new_job.to_dict()
         job_data['skills'] = skills
@@ -294,14 +284,6 @@ class JobList(MethodView):
             # 새로운 스킬 추가
             update_skills_table([skills])
             save_job_posting_skills(job.job_post_id, [skills])
-            # for skill_name in skills:
-            #     skill = Skill.query.filter_by(name=skill_name).first()
-            #     if not skill:
-            #         skill = Skill(name=skill_name)
-            #         db.session.add(skill)
-            #         db.session.commit()
-            #     job_skill = JobPostingSkill(job_post_id=job.job_post_id, skill_id=skill.skill_id)
-            #     db.session.add(job_skill)
 
         db.session.commit()
 
@@ -421,8 +403,8 @@ class JobSort(MethodView):
         if sort not in valid_sort_options:
             raise ValidationError("유효하지 않은 정렬 기준입니다.")
 
-        page = args.get('page', 1, type=int)
-        limit = args.get('limit', 20, type=int)
+        page = args.get('page', 1)
+        limit = args.get('limit', 20)
 
         query = apply_sorting(JobPosting.query, sort)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
