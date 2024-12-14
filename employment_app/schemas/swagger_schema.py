@@ -1,6 +1,6 @@
 # OpenAPI 서버 설정
 swagger_servers = [
-    {"url": "https://api.example.com/v1", "description": "Production Server"},
+    {"url": "http://113.198.66.75:10254", "description": "Production Server"},
     {"url": "http://localhost:5000", "description": "Local Development Server"},
 ]
 

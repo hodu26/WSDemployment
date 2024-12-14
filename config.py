@@ -37,6 +37,7 @@ class Config:
         "docExpansion": "list",  # 문서 확장 설정
         "filter": True,  # 검색 창 활성화
     }
+    SERVER_PATH = os.getenv("SERVER_PATH", "http://localhost:5000")
 
     # 추가 설정 (필요 시)
     PROPAGATE_EXCEPTIONS = True
