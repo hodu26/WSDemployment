@@ -1,4 +1,4 @@
-from flask import current_app
+from flask import current_app, json
 from flask_jwt_extended import jwt_required
 from flask_smorest import Blueprint as SmorestBlueprint
 from flask.views import MethodView
@@ -31,7 +31,8 @@ class JobList(MethodView):
         cached_data = redis_client.get(cache_key)
 
         if cached_data:
-            return success_response({"jobs": eval(cached_data)}, pagination), 200
+            cached_data = json.loads(cached_data)  # JSON 파싱
+            return success_response({"jobs": cached_data["jobs"]}, cached_data["pagination"]), 200
 
         query = apply_filters(JobPosting.query, filters)
         query = apply_sorting(query, sort)
@@ -45,7 +46,11 @@ class JobList(MethodView):
         }
 
         # 조회한 데이터 Redis에 캐시 저장
-        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
+        cache_value = {
+            "jobs": jobs_with_skills,
+            "pagination": pagination
+        }
+        redis_client.set(cache_key, json.dumps(cache_value))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
@@ -260,7 +265,8 @@ class JobSearch(MethodView):
         cached_data = redis_client.get(cache_key)
 
         if cached_data:
-            return success_response({"jobs": eval(cached_data)}, pagination), 200
+            cached_data = json.loads(cached_data)  # JSON 파싱
+            return success_response({"jobs": cached_data["jobs"]}, cached_data["pagination"]), 200
 
         query = apply_filters(JobPosting.query, filters)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
@@ -273,7 +279,11 @@ class JobSearch(MethodView):
         }
 
         # 조회한 데이터 Redis에 캐시 저장
-        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
+        cache_value = {
+            "jobs": jobs_with_skills,
+            "pagination": pagination
+        }
+        redis_client.set(cache_key, json.dumps(cache_value))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
@@ -297,7 +307,8 @@ class JobFilter(MethodView):
         cached_data = redis_client.get(cache_key)
 
         if cached_data:
-            return success_response({"jobs": eval(cached_data)}, pagination), 200
+            cached_data = json.loads(cached_data)  # JSON 파싱
+            return success_response({"jobs": cached_data["jobs"]}, cached_data["pagination"]), 200
 
         query = apply_filters(JobPosting.query, filters)
         query = apply_sorting(query, sort)
@@ -311,7 +322,11 @@ class JobFilter(MethodView):
         }
 
         # 조회한 데이터 Redis에 캐시 저장
-        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
+        cache_value = {
+            "jobs": jobs_with_skills,
+            "pagination": pagination
+        }
+        redis_client.set(cache_key, json.dumps(cache_value))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
         
@@ -343,7 +358,8 @@ class JobSort(MethodView):
         cached_data = redis_client.get(cache_key)
 
         if cached_data:
-            return success_response({"jobs": eval(cached_data)}, pagination), 200
+            cached_data = json.loads(cached_data)  # JSON 파싱
+            return success_response({"jobs": cached_data["jobs"]}, cached_data["pagination"]), 200
 
         query = apply_sorting(JobPosting.query, sort)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
@@ -356,7 +372,11 @@ class JobSort(MethodView):
         }
         
         # 조회한 데이터 Redis에 캐시 저장
-        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
+        cache_value = {
+            "jobs": jobs_with_skills,
+            "pagination": pagination
+        }
+        redis_client.set(cache_key, json.dumps(cache_value))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
