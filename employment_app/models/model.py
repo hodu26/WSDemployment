@@ -137,7 +137,7 @@ class Bookmark(db.Model):
     def to_dict(self):
         return {
             'bookmark_id': self.bookmark_id,
-            'user': self.user.to_dict() if self.user else None,  # User 정보 포함
+            'user_id': self.user_id,
             'job_posting': self.job_posting.to_dict() if self.job_posting else None,  # JobPosting 정보 포함
             'created_at': self.created_at.isoformat()
         }
