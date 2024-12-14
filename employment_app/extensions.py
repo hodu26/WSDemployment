@@ -16,3 +16,11 @@ KST = pytz.timezone('Asia/Seoul')
 class JobStatus(Enum):
     OPEN = 'open'
     CLOSED = 'closed'
+
+# 공고 지원 상태 설정
+class ApplicationStatus(Enum):
+    SUBMIT = 'submitted'
+    REVIEW = 'reviewed'
+    ACCEPT = 'accepted'
+    REJECT = 'rejected'
+    CANCEL = 'cancelled'
