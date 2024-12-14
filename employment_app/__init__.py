@@ -11,6 +11,7 @@ from .error_log import configure_error_handlers, configure_logger, monitor_perfo
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text  # text를 import
 from flask_marshmallow import Marshmallow
+from redis import Redis  # Redis 임포트
 
 def create_app():
     """Flask 애플리케이션을 생성하고 설정합니다."""
@@ -50,6 +51,17 @@ def create_app():
     # 블루프린트 등록
     app.register_blueprint(main_blueprint)  # 기본 라우트 등록
     app.register_blueprint(api_blueprint, url_prefix='/api')  # API 관련 라우트 등록
+
+    # Redis 클라이언트 초기화
+    def get_redis_client():
+        return Redis(host=app.config['REDIS_HOST'], 
+                     port=app.config['REDIS_PORT'], 
+                     db=app.config['REDIS_DB'], 
+                     password=app.config['REDIS_PASSWORD'], 
+                     decode_responses=True)
+
+    # 애플리케이션에 Redis 클라이언트 추가
+    app.redis_client = get_redis_client()
 
     # 데이터베이스 연결 확인
     with app.app_context():

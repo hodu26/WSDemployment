@@ -25,6 +25,14 @@ class JobList(MethodView):
         page = args.get('page', 1)
         limit = args.get('limit', 20)
 
+        # Redis 캐시에서 데이터 조회
+        redis_client = current_app.redis_client
+        cache_key = f"job_list_{str(filters)}_{sort}_{page}_{limit}"
+        cached_data = redis_client.get(cache_key)
+
+        if cached_data:
+            return success_response({"jobs": eval(cached_data)}, pagination), 200
+
         query = apply_filters(JobPosting.query, filters)
         query = apply_sorting(query, sort)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
@@ -35,6 +43,9 @@ class JobList(MethodView):
             "totalPages": paginated_result.pages,
             "totalItems": paginated_result.total
         }
+
+        # 조회한 데이터 Redis에 캐시 저장
+        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
@@ -243,6 +254,14 @@ class JobSearch(MethodView):
         page = args.get('page', 1)
         limit = args.get('limit', 20)
 
+        # Redis 캐시에서 데이터 조회
+        redis_client = current_app.redis_client
+        cache_key = f"job_search_{str(filters)}_{page}_{limit}"
+        cached_data = redis_client.get(cache_key)
+
+        if cached_data:
+            return success_response({"jobs": eval(cached_data)}, pagination), 200
+
         query = apply_filters(JobPosting.query, filters)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
 
@@ -252,6 +271,9 @@ class JobSearch(MethodView):
             "totalPages": paginated_result.pages,
             "totalItems": paginated_result.total
         }
+
+        # 조회한 데이터 Redis에 캐시 저장
+        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 
@@ -269,6 +291,14 @@ class JobFilter(MethodView):
         page = args.get('page', 1)
         limit = args.get('limit', 20)
 
+        # Redis 캐시에서 데이터 조회
+        redis_client = current_app.redis_client
+        cache_key = f"job_filter_{str(filters)}_{sort}_{page}_{limit}"
+        cached_data = redis_client.get(cache_key)
+
+        if cached_data:
+            return success_response({"jobs": eval(cached_data)}, pagination), 200
+
         query = apply_filters(JobPosting.query, filters)
         query = apply_sorting(query, sort)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
@@ -279,6 +309,9 @@ class JobFilter(MethodView):
             "totalPages": paginated_result.pages,
             "totalItems": paginated_result.total
         }
+
+        # 조회한 데이터 Redis에 캐시 저장
+        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
         
@@ -304,6 +337,14 @@ class JobSort(MethodView):
         page = args.get('page', 1)
         limit = args.get('limit', 20)
 
+        # Redis 캐시에서 데이터 조회
+        redis_client = current_app.redis_client
+        cache_key = f"job_sort_{sort}_{page}_{limit}"
+        cached_data = redis_client.get(cache_key)
+
+        if cached_data:
+            return success_response({"jobs": eval(cached_data)}, pagination), 200
+
         query = apply_sorting(JobPosting.query, sort)
         paginated_result = query.paginate(page=page, per_page=limit, error_out=False)
 
@@ -313,6 +354,9 @@ class JobSort(MethodView):
             "totalPages": paginated_result.pages,
             "totalItems": paginated_result.total
         }
+        
+        # 조회한 데이터 Redis에 캐시 저장
+        redis_client.setex(cache_key, 3600, str(jobs_with_skills))  # 캐시 만료 시간 1시간 설정
 
         return success_response({"jobs": jobs_with_skills}, pagination), 200
 

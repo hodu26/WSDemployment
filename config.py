@@ -17,6 +17,12 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
 
+    # Redis 연결 정보
+    REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+    REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+    REDIS_DB = int(os.getenv('REDIS_DB', 0))
+    REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
+
     # JWT 설정
     JWT_SECRET_KEY = os.getenv("SECRET_KEY", "your_jwt_secret_key")  # JWT 인증용 시크릿 키
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600))  # 액세스 토큰 만료 시간 (초)
