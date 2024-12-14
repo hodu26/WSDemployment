@@ -5,7 +5,7 @@ from flask_smorest import Api
 from .views.main_routes import main_blueprint
 from .controllers import api_blueprint, init_api
 from .models import db # models에 선언된 db 객체 사용
-from .schemas import swagger_security_schemes, swagger_servers
+from .schemas import swagger_security_schemes
 from .extensions import bcrypt, jwt # 확장 프로그램 사용
 from .error_log import configure_error_handlers, configure_logger, monitor_performance
 from sqlalchemy.exc import OperationalError
@@ -38,6 +38,12 @@ def create_app():
     # extensions(확장) 초기화 
     bcrypt.init_app(app)
     jwt.init_app(app)
+
+    # OpenAPI 서버 설정
+    swagger_servers = [
+        {"url": app.config['SERVER_PATH'], "description": "Production Server"},
+        {"url": "http://localhost:5000", "description": "Local Development Server"},
+]
 
     # Swagger API 설정
     api = Api(app)
