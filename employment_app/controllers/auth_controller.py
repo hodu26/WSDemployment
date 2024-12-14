@@ -1,27 +1,15 @@
-from flask import request, current_app
-from flask_smorest import Api, Blueprint as SmorestBlueprint
+from flask import current_app
+from flask_smorest import Blueprint as SmorestBlueprint
 from flask.views import MethodView
 from ..models import db, User, Token
 from ..schemas import RegisterSchema, LoginSchema, ProfileSchema, SuccessResponseSchema, ErrorResponseSchema
 from ..extensions import bcrypt, KST
 from ..error_log import success_response, AuthenticationError, ValidationError
+from ..services import is_valid_email, is_strong_password
 from datetime import datetime, timedelta
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
-import re
 
 auth_ns = SmorestBlueprint("Auth", "Auth", url_prefix="/auth", description="인증 관련 API")
-
-# 이메일 검증
-def is_valid_email(email):
-    return re.match(r"[^@]+@[^@]+\.[^@]+", email)
-
-# 비밀번호 검증
-def is_strong_password(password):
-    return (len(password) >= 8 and
-            re.search(r'[A-Z]', password) and
-            re.search(r'[a-z]', password) and
-            re.search(r'[0-9]', password) and
-            re.search(r'[!@#$%^&*(),.?":{}|<>]', password))
 
 # 회원 가입
 @auth_ns.route("/register")
