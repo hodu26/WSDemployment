@@ -1,5 +1,5 @@
 from flask.views import MethodView
-from flask_smorest import Blueprint
+from flask_smorest import Blueprint as SmorestBlueprint
 from datetime import datetime
 from flask import current_app
 from sqlalchemy.orm import joinedload
@@ -9,7 +9,7 @@ from ..error_log import success_response, AuthenticationError, ValidationError
 from ..services import apply_sorting
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-applications_ns = Blueprint('Applications', 'Applications', url_prefix='/applications', description="공고 지원 관련 API")
+applications_ns = SmorestBlueprint('Applications', 'Applications', url_prefix='/applications', description="공고 지원 관련 API")
 
 @applications_ns.route("")
 class ApplicationStatus(MethodView):
@@ -34,6 +34,7 @@ class ApplicationStatus(MethodView):
         # 중복 지원 체크
         existing_application = Application.query.filter_by(user_id=user.user_id, job_post_id=job_post_id).first()
         if existing_application:
+            current_app.logger.error("already applied position")
             raise ValidationError("이미 지원한 직무입니다.")
         
         job_post = JobPosting.query.get(job_post_id)
@@ -91,6 +92,7 @@ class ApplicationStatus(MethodView):
         applications = paginated_result.items
         
         if not applications:
+            current_app.logger.error("There are no applies")
             raise ValidationError("지원 내역이 없습니다.")
         
         applications_data = [application.to_dict() for application in applications]
@@ -122,10 +124,12 @@ class ApplicationCancel(MethodView):
         
         application = Application.query.get(apply_id)
         if not application:
+            current_app.logger.error("Caanot found applied history")
             raise ValidationError("지원 내역을 찾을 수 없습니다.")
         
         # 취소 가능 여부 확인 (예시로 'submitted' 상태만 취소 가능)
         if application.status != "submitted":
+            current_app.logger.error("You can cancelled only in 'submitted' status")
             raise ValidationError("지원 취소는 'submitted' 상태에서만 가능합니다.")
         
         # 상태 업데이트 (취소 상태로 변경)

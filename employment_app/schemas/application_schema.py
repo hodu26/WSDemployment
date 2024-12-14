@@ -4,6 +4,7 @@ from ..extensions import ApplicationStatus
 class ApplicationSchema(Schema):
     job_post_id = fields.Int(required=True, description='채용 공고 id', default='100', example='100')
     status = fields.Str(
+        example=ApplicationStatus.SUBMIT.value,
         missing=ApplicationStatus.SUBMIT.value,
         validate=validate.OneOf(
             [status.value for status in ApplicationStatus]
@@ -11,6 +12,7 @@ class ApplicationSchema(Schema):
         description='지원 상태'
     )
     sort = fields.Str(
+        example="desc",
         missing='desc',
         validate=validate.OneOf(
             ['desc', 'asc']
