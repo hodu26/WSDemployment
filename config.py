@@ -26,8 +26,8 @@ class Config:
     JWT_HEADER_TYPE = "Bearer"  # JWT 토큰 타입 (Bearer)
 
     # Swagger/OpenAPI 설정
-    API_TITLE = "My API"
-    API_VERSION = "v1"
+    API_TITLE = "Swagger UI"
+    API_VERSION = "1.0.0"
     OPENAPI_VERSION = "3.0.3"
     OPENAPI_JSON_PATH = "swagger.json"
     OPENAPI_URL_PREFIX = "/"
