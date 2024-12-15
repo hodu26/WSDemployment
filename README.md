@@ -85,42 +85,47 @@ Flask 기반으로 구현된 구인구직 백엔드 서버입니다. 이 프로�
 
 ## 🔍 API 엔드포인트
 
-### 1. **Auth (인증 관련 API)**
-- <span style="color:green;">`POST`</span> `/auth/register` - 회원가입
-- <span style="color:green;">`POST`</span> `/auth/login` - 로그인
-- <span style="color:green;">`POST`</span> `/auth/refresh` - 유저 엑세스토큰 재발급
-- <span style="color:blue;">`GET`</span> `/auth/user` - 유저 정보 조회
-- <span style="color:red;">`DELETE`</span> `/auth/user` - 유저 삭제
-- <span style="color:orange;">`PUT`</span> `/auth/profile` - 유저 정보 수정
+### 1. **Crawl (크롤링 관련 API)**
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/crawl/job_posts` - 키워드별 채용 정보 크롤링 및 db 저장
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/crawl/company_info` - 회사 정보 크롤링 및 db 저장
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/crawl/update/skills` - 기술명 추가
 
-### 2. **Jobs (채용 공고 관련 API)**
-- <span style="color:blue;">`GET`</span> `/job` - 채용 공고 목록 조회 (검색, 필터링, 정렬 포함)
-- <span style="color:green;">`POST`</span> `/job` - 새로운 채용 공고 등록
-- <span style="color:orange;">`PUT`</span> `/job` - 채용 공고 수정
-- <span style="color:red;">`DELETE`</span> `/job` - 채용 공고 삭제
-- <span style="color:blue;">`GET`</span> `/job/search` - 채용 공고 검색
-- <span style="color:blue;">`GET`</span> `/job/filter` - 채용 공고 필터링
-- <span style="color:blue;">`GET`</span> `/job/sort` - 채용 공고 정렬
-- <span style="color:blue;">`GET`</span> `/job/{id}` - 단일 채용 공고 상세 조회
+### 2. **Auth (인증 관련 API)**
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/auth/register` - 회원가입
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/auth/login` - 로그인
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/auth/refresh` - 유저 엑세스토큰 재발급
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/auth/user` - 유저 정보 조회
+- ![DELETE](https://img.shields.io/badge/DELETE-red?style=flat-square) `/auth/user` - 유저 삭제
+- ![PUT](https://img.shields.io/badge/PUT-orange?style=flat-square) `/auth/profile` - 유저 정보 수정
 
-### 3. **Applications (지원 내역 관리 API)**
-- <span style="color:blue;">`GET`</span> `/application` - 지원 내역 조회
-- <span style="color:green;">`POST`</span> `/application` - 지원하기
-- <span style="color:red;">`DELETE`</span> `/application/{apply_id}` - 지원 취소
+### 3. **Jobs (채용 공고 관련 API)**
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/job` - 채용 공고 목록 조회 (검색, 필터링, 정렬 포함)
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/job` - 새로운 채용 공고 등록
+- ![PUT](https://img.shields.io/badge/PUT-orange?style=flat-square) `/job` - 채용 공고 수정
+- ![DELETE](https://img.shields.io/badge/DELETE-red?style=flat-square) `/job` - 채용 공고 삭제
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/job/search` - 채용 공고 검색
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/job/filter` - 채용 공고 필터링
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/job/sort` - 채용 공고 정렬
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/job/{id}` - 단일 채용 공고 상세 조회
 
-### 4. **Bookmarks (북마크 관련 API)**
-- <span style="color:green;">`POST`</span> `/bookmarks` - 북마크 추가/삭제
-- <span style="color:blue;">`GET`</span> `/bookmarks` - 북마크 목록 조회
+### 4. **Applications (지원 내역 관리 API)**
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/application` - 지원 내역 조회
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/application` - 지원하기
+- ![DELETE](https://img.shields.io/badge/DELETE-red?style=flat-square) `/application/{apply_id}` - 지원 취소
 
-### 5. **Inquiry (문의 관련 API)**
-- <span style="color:blue;">`GET`</span> `/inquiry` - 사용자 문의 목록 조회
-- <span style="color:green;">`POST`</span> `/inquiry` - 사용자 문의 생성
-- <span style="color:red;">`DELETE`</span> `/inquiry/{id}` - 사용자 문의 삭제
+### 5. **Bookmarks (북마크 관련 API)**
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/bookmarks` - 북마크 추가/삭제
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/bookmarks` - 북마크 목록 조회
 
-### 6. **Reviews (리뷰 관련 API)**
-- <span style="color:blue;">`GET`</span> `/reviews` - 회사 리뷰 목록 조회
-- <span style="color:green;">`POST`</span> `/reviews` - 회사 리뷰 작성
-- <span style="color:red;">`DELETE`</span> `/reviews/{id}` - 리뷰 삭제
+### 6. **Inquiry (문의 관련 API)**
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/inquiry` - 사용자 문의 목록 조회
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/inquiry` - 사용자 문의 생성
+- ![DELETE](https://img.shields.io/badge/DELETE-red?style=flat-square) `/inquiry/{id}` - 사용자 문의 삭제
+
+### 7. **Reviews (리뷰 관련 API)**
+- ![GET](https://img.shields.io/badge/GET-blue?style=flat-square) `/reviews` - 회사 리뷰 목록 조회
+- ![POST](https://img.shields.io/badge/POST-green?style=flat-square) `/reviews` - 회사 리뷰 작성
+- ![DELETE](https://img.shields.io/badge/DELETE-red?style=flat-square) `/reviews/{id}` - 리뷰 삭제
 
 ---
 
