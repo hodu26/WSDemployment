@@ -26,7 +26,30 @@ Flask 기반으로 구현된 구인구직 백엔드 서버입니다. 이 프로�
 - Gunicorn
 - Supervisor (서버 환경용)
 
-### 2. 로컬 환경에서 실행하기
+### 2. .env 설정 (예시)
+```.env
+# dev / prod 설정
+ENV = dev
+
+# DB 정보
+DB_USER = user
+DB_PASSWORD = your_db_password
+DB_HOST = localhost
+DB_PORT = 3000
+DB_NAME = my_db
+
+REDIS_HOST = localhost                # Redis 호스트
+REDIS_PORT = 8080                     # Redis 포트
+REDIS_DB = 0                          # 사용할 Redis 데이터베이스 번호
+REDIS_PASSWORD = your_redis_password
+
+SECRET_KEY = your_secret_key(jwt)
+
+# SERVER 설정
+SERVER_PATH = http://localhost:80
+```
+
+### 3. 로컬 환경에서 실행하기
 1. 가상 환경 생성 및 활성화:
     ```bash
     python -m venv venv
@@ -46,7 +69,7 @@ Flask 기반으로 구현된 구인구직 백엔드 서버입니다. 이 프로�
 4. 로컬에서 Swagger UI 확인:
     - `http://127.0.0.1:5000/`
 
-### 3. 서버 환경에서 실행하기
+### 4. 서버 환경에서 실행하기
 
 1. Gunicorn 설치:
     ```bash
